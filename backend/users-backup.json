@@ -1,0 +1,11 @@
+[
+  {
+    "id": "user-manager",
+    "name": "Manager",
+    "username": "manager",
+    "password": "$2b$10$l7.ual.Xr761yUj57kPMC.uSARnjO9AVR8vVnNwTG0Gurljh0k6ae",
+    "role": "manager",
+    "created_at": "2026-09-19T12:15:11.786Z",
+    "updated_at": "2026-09-19T12:15:11.786Z"
+  }
+]

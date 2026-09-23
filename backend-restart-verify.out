@@ -1,0 +1,18 @@
+
+> inventory-backend@0.1.0 start
+> node src/server.js
+
+◇ injected env (7) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+Cleaning stale Prisma artifacts...
+Applying database migrations...
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "inventory_db", schema "public" at "localhost:5432"
+
+No migration found in prisma/migrations
+
+
+No pending migrations to apply.
+Backend server listening on http://localhost:4000

@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  manager
+  executive
+}
+
+enum ProductStatus {
+  in_stock       @map("in-stock")
+  low_stock      @map("low-stock")
+  out_of_stock   @map("out-of-stock")
+  discontinued
+}
+
+enum OrderRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+enum ActivityType {
+  product_added    @map("product-added")
+  product_updated  @map("product-updated")
+  stock_in        @map("stock-in")
+  stock_out       @map("stock-out")
+  stock_adjusted   @map("stock-adjusted")
+  category_added   @map("category-added")
+  category_updated @map("category-updated")
+  low_stock_alert  @map("low-stock-alert")
+  order_requested  @map("order-requested")
+  order_approved   @map("order-approved")
+  order_rejected    @map("order-rejected")
+}
+
+enum SavedBuildStatus {
+  completed
+  draft
+  archived
+}
+
+enum MovementType {
+  in
+  out
+  adjustment
+  transfer
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  username  String   @unique
+  password  String
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Branch {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  products  ProductBranch[]
+  tallyGuid         String?           @unique
+  tallyName         String?
+  syncStatus        String?
+  lastSyncedAt      DateTime?
+}
+
+model Category {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String
+  color       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  products    Product[]
+  tallyGuid         String?           @unique
+  tallyName         String?
+  syncStatus        String?
+  lastSyncedAt      DateTime?
+}
+
+model Product {
+  id                String            @id @default(cuid())
+  name              String
+  sku               String            @unique
+  serialNumber      String?
+  modelNumber       String?
+  categoryId        String
+  category          Category          @relation(fields: [categoryId], references: [id])
+  quantity          Int
+  price             Float
+  mrp               Float             @default(0)
+  status            ProductStatus
+  image             String?
+  description       String?
+  minStock          Int
+  monthlyInterest   Float
+  previousQuantity   Int
+  paidAmount        Float             @default(0)
+  shipping          Float?
+  installation      Float?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  branches          ProductBranch[]
+  movements         StockMovement[]
+  orderItems        OrderRequestItem[]
+  buildItems        SavedBuildItem[]
+  stockSnapshots    ProductStockSnapshot[]
+  tallyGuid         String?           @unique
+  tallyName         String?
+  syncStatus        String?
+  lastSyncedAt      DateTime?
+}
+
+model ProductStockSnapshot {
+  id           String   @id @default(cuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  snapshotDate DateTime
+  quantity     Int
+  createdAt    DateTime @default(now())
+
+  @@unique([productId, snapshotDate])
+  @@index([snapshotDate])
+}
+
+model ProductBranch {
+  productId String
+  branchId  String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  branch    Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([productId, branchId])
+}
+
+model StockMovement {
+  id              String       @id @default(cuid())
+  productId       String
+  product         Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productName     String
+  productSku      String
+  type            MovementType
+  quantity        Int
+  previousQuantity Int
+  newQuantity     Int
+  reason          String
+  location        String?
+  reference       String?
+  user            String?
+  createdAt       DateTime     @default(now())
+  tallyGuid         String?           @unique
+  tallyName         String?
+  syncStatus        String?
+  lastSyncedAt      DateTime?
+}
+
+model ActivityItem {
+  id         String       @id @default(cuid())
+  type       ActivityType
+  message    String
+  productId  String?
+  productName String?
+  metadata   Json?
+  createdAt  DateTime     @default(now())
+}
+
+model OrderRequest {
+  id           String              @id @default(cuid())
+  customerName String
+  customerEmail String
+  status       OrderRequestStatus
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  items        OrderRequestItem[]
+  tallyGuid         String?           @unique
+  tallyName         String?
+  syncStatus        String?
+  lastSyncedAt      DateTime?
+}
+
+model OrderRequestItem {
+  id           String       @id @default(cuid())
+  orderRequestId String
+  productId    String
+  product      Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+  orderRequest OrderRequest @relation(fields: [orderRequestId], references: [id], onDelete: Cascade)
+  productName  String
+  quantity     Int
+}
+
+model ProductMargin {
+  id       String @id @default(cuid())
+  productId String @unique
+  type     String
+  value    Float
+}
+
+model SavedBuild {
+  id          String          @id @default(cuid())
+  name        String
+  status      SavedBuildStatus
+  subtotal    Float
+  marginType  String
+  marginValue Float
+  marginAmount Float
+  grandTotal  Float
+  createdBy   String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  items       SavedBuildItem[]
+}
+
+model SavedBuildItem {
+  id           String    @id @default(cuid())
+  buildId      String
+  build        SavedBuild @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  category     String
+  productId    String
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productName  String
+  price        Float
+}
+
+model OrganizationProfile {
+  id                String   @id @default(cuid())
+  name              String
+  currency          String
+  warehouseLocation String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+
+model SyncJob {
+  id          String   @id @default(cuid())
+  entityType  String
+  entityId    String
+  action      String
+  payload     Json
+  status      String   @default("pending")
+  attempts    Int      @default(0)
+  lastError   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

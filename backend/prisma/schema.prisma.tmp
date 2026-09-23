@@ -1,0 +1,12 @@
+model SyncJob {
+  id          String   @id @default(cuid())
+  entityType  String
+  entityId    String
+  action      String
+  payload     Json
+  status      String   @default("pending")
+  attempts    Int      @default(0)
+  lastError   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

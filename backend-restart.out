@@ -1,0 +1,11 @@
+
+> inventory-backend@0.1.0 start
+> node src/server.js
+
+◇ injected env (7) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Cleaning stale Prisma artifacts...
+Generating Prisma client...
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma

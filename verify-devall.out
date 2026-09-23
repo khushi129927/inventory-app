@@ -1,0 +1,106 @@
+
+> inventory-app@0.1.0 dev
+> next dev
+
+   ▲ Next.js 16.0.0 (Turbopack)
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.10.138:3001
+
+ ✓ Starting...
+ ✓ Ready in 663ms
+ ○ Compiling / ...
+ GET / 200 in 9.2s (compile: 8.6s, render: 508ms)
+ GET /login 200 in 1935ms (compile: 1903ms, render: 32ms)
+ GET / 200 in 61ms (compile: 8ms, render: 54ms)
+ GET / 200 in 30ms (compile: 4ms, render: 25ms)
+ ✓ Compiled in 683ms
+ ✓ Compiled in 242ms
+ ✓ Compiled in 260ms
+ ✓ Compiled in 115ms
+ ✓ Compiled in 113ms
+ GET / 200 in 265ms (compile: 75ms, render: 190ms)
+ GET /login 200 in 156ms (compile: 116ms, render: 40ms)
+ GET / 200 in 58ms (compile: 6ms, render: 52ms)
+ GET / 200 in 27ms (compile: 4ms, render: 24ms)
+ GET / 200 in 322ms (compile: 167ms, render: 155ms)
+ GET / 200 in 53ms (compile: 5ms, render: 48ms)
+ GET /login 200 in 143ms (compile: 112ms, render: 31ms)
+ GET / 200 in 52ms (compile: 6ms, render: 46ms)
+ GET /login 200 in 27ms (compile: 7ms, render: 20ms)
+ GET / 200 in 16ms (compile: 4ms, render: 12ms)
+ GET /settings 200 in 1418ms (compile: 1399ms, render: 19ms)
+ ✓ Compiled in 88ms
+ ✓ Compiled in 88ms
+ ✓ Compiled in 86ms
+ ✓ Compiled in 159ms
+ ✓ Compiled in 119ms
+ ✓ Compiled in 88ms
+ GET /users 200 in 1166ms (compile: 1149ms, render: 16ms)
+ GET /products 200 in 2.5s (compile: 2.4s, render: 19ms)
+ ✓ Compiled in 110ms
+ ✓ Compiled in 106ms
+ ✓ Compiled in 94ms
+ ✓ Compiled in 82ms
+ ✓ Compiled in 80ms
+ ✓ Compiled in 152ms
+ ✓ Compiled in 100ms
+ ✓ Compiled in 81ms
+ GET /users 200 in 93ms (compile: 67ms, render: 26ms)
+ GET /settings 200 in 92ms (compile: 63ms, render: 29ms)
+ ✓ Compiled in 159ms
+ GET /users 200 in 17ms (compile: 3ms, render: 14ms)
+ ✓ Compiled in 87ms
+ ✓ Compiled in 106ms
+ ✓ Compiled in 88ms
+ ✓ Compiled in 85ms
+ ✓ Compiled in 88ms
+ ✓ Compiled in 91ms
+ ✓ Compiled in 99ms
+ GET /settings 200 in 115ms (compile: 86ms, render: 28ms)
+ GET /users 200 in 87ms (compile: 59ms, render: 29ms)
+ ✓ Compiled in 119ms
+ ✓ Compiled in 92ms
+ ✓ Compiled in 191ms
+ GET /login 200 in 24ms (compile: 5ms, render: 19ms)
+ GET / 200 in 110ms (compile: 68ms, render: 42ms)
+ GET / 200 in 22ms (compile: 4ms, render: 18ms)
+ GET /login 200 in 14ms (compile: 3ms, render: 11ms)
+ GET / 200 in 31ms (compile: 3ms, render: 28ms)
+ GET / 200 in 16ms (compile: 4ms, render: 12ms)
+ GET /users 200 in 70ms (compile: 52ms, render: 18ms)
+ GET / 200 in 17ms (compile: 3ms, render: 13ms)
+ GET /products 200 in 282ms (compile: 266ms, render: 16ms)
+ GET /movements 200 in 1636ms (compile: 1620ms, render: 16ms)
+ GET /orders 200 in 1061ms (compile: 1042ms, render: 18ms)
+ GET /categories 200 in 1225ms (compile: 1208ms, render: 17ms)
+ GET /users 200 in 17ms (compile: 5ms, render: 12ms)
+ GET /builder/history 200 in 858ms (compile: 839ms, render: 19ms)
+ GET /builder 200 in 986ms (compile: 967ms, render: 19ms)
+ GET /settings 200 in 22ms (compile: 4ms, render: 18ms)
+ GET / 200 in 14ms (compile: 4ms, render: 11ms)
+ ✓ Compiled in 100ms
+ ✓ Compiled in 158ms
+ GET / 200 in 158ms (compile: 107ms, render: 51ms)
+ ✓ Compiled in 90ms
+ ✓ Compiled in 87ms
+ ✓ Compiled in 94ms
+ ✓ Compiled in 93ms
+ GET /products 200 in 298ms (compile: 275ms, render: 23ms)
+ GET /products 200 in 786ms (compile: 293ms, render: 492ms)
+ GET /login 200 in 61ms (compile: 5ms, render: 56ms)
+ ✓ Compiled in 87ms
+ ✓ Compiled in 114ms
+ GET /products 200 in 596ms (compile: 303ms, render: 293ms)
+ GET /login 200 in 42ms (compile: 9ms, render: 33ms)
+ GET / 200 in 91ms (compile: 71ms, render: 21ms)
+ GET /products 200 in 198ms (compile: 184ms, render: 14ms)
+ GET /products 200 in 359ms (compile: 307ms, render: 53ms)
+ GET /login 200 in 23ms (compile: 4ms, render: 19ms)
+ GET /products 200 in 244ms (compile: 210ms, render: 34ms)
+ GET /products 200 in 259ms (compile: 221ms, render: 38ms)
+ GET /login 200 in 38ms (compile: 7ms, render: 30ms)
+ GET / 200 in 27ms (compile: 4ms, render: 23ms)
+ GET /products 200 in 220ms (compile: 207ms, render: 14ms)
+ GET /products 200 in 260ms (compile: 230ms, render: 30ms)
+ GET /login 200 in 35ms (compile: 10ms, render: 25ms)
+ GET / 200 in 14ms (compile: 3ms, render: 11ms)
