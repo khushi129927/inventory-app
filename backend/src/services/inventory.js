@@ -80,8 +80,17 @@ function normalizeProductUpdateData(data) {
       }
     }
   }
-  if (typeof normalized.monthsInInventory === "number") {
-    delete normalized.monthsInInventory;
+  if (typeof normalized.availableBranches === "string") {
+    normalized.availableBranches = normalized.availableBranches
+      .split(",")
+      .map((branch) => branch.trim())
+      .filter(Boolean);
+  }
+  if (typeof normalized.monthsInInventory === "string" && normalized.monthsInInventory.trim() !== "") {
+    const value = Number(normalized.monthsInInventory);
+    if (!Number.isNaN(value)) {
+      normalized.monthsInInventory = value;
+    }
   }
   return normalized;
 }

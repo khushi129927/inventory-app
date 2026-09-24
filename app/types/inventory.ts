@@ -30,12 +30,14 @@ export interface Product {
   categoryName: string;
   quantity: number;
   price: number;
+  mrp: number;
   status: ProductStatus;
   image?: string;
   description?: string;
   availableBranches?: string[];
   minStock: number;
   previousQuantity: number;
+  monthsInInventory?: number;
   yesterdayQuantity?: number;
   hasYesterdaySnapshot?: boolean;
   yesterdaySnapshotDate?: string | null;

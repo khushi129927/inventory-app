@@ -37,7 +37,7 @@ export interface ParsedProductRow {
   category?: string;
   availableBranches?: string[];
   quantity?: number;
-  price?: number;
+  mrp?: number;
   minStock?: number;
   monthlyInterest: number;
   description?: string;
@@ -76,7 +76,8 @@ export async function parseProductExcel(buffer: ArrayBuffer): Promise<ParsedProd
   const skuIdx = colIndex("sku");
   const categoryIdx = colIndex("category");
   const quantityIdx = colIndex("quantity");
-  const priceIdx = colIndex("price");
+    const priceIdx = colIndex("price");
+    const mrpIdx = colIndex("mrp");
   const minStockIdx = colIndex("min stock");
   const monthlyInterestIdx = colIndex("monthly interest");
   const descriptionIdx = colIndex("description");
@@ -109,6 +110,7 @@ export async function parseProductExcel(buffer: ArrayBuffer): Promise<ParsedProd
       categoryIdx >= 0 ? String(row[categoryIdx] ?? "").trim() : "";
     const quantityRaw = quantityIdx >= 0 ? row[quantityIdx] : undefined;
     const priceRaw = priceIdx >= 0 ? row[priceIdx] : undefined;
+    const mrpRaw = mrpIdx >= 0 ? row[mrpIdx] : undefined;
     const minStockRaw = minStockIdx >= 0 ? row[minStockIdx] : undefined;
     const monthlyInterestRaw = monthlyInterestIdx >= 0 ? row[monthlyInterestIdx] : undefined;
     const description =
@@ -151,17 +153,18 @@ export async function parseProductExcel(buffer: ArrayBuffer): Promise<ParsedProd
       errors.push("Quantity is required");
     }
 
-    let price: number | undefined;
-    if (priceRaw !== undefined && priceRaw !== "") {
-      price = Number(priceRaw);
-      if (isNaN(price)) {
-        errors.push("Price must be a valid number");
-        price = undefined;
-      } else if (price < 0) {
-        errors.push("Price cannot be negative");
+    let mrp: number | undefined;
+    const effectivePriceRaw = mrpRaw !== undefined && mrpRaw !== "" ? mrpRaw : priceRaw;
+    if (effectivePriceRaw !== undefined && effectivePriceRaw !== "") {
+      mrp = Number(effectivePriceRaw);
+      if (isNaN(mrp)) {
+        errors.push("MRP must be a valid number");
+        mrp = undefined;
+      } else if (mrp < 0) {
+        errors.push("MRP cannot be negative");
       }
     } else {
-      errors.push("Price is required");
+      errors.push("MRP is required");
     }
 
     let minStock: number | undefined;
@@ -196,7 +199,7 @@ export async function parseProductExcel(buffer: ArrayBuffer): Promise<ParsedProd
       category: category || undefined,
       availableBranches,
       quantity,
-      price,
+      mrp,
       minStock,
       monthlyInterest,
       description,

@@ -38,7 +38,6 @@ function buildProductPayload(form: FormData, product: Product | null, categoryNa
     .map((branch) => branch.trim())
     .filter(Boolean);
   const quantity = Number(form.quantity);
-  const price = Number(form.price);
   const minStock = Number(form.minStock);
   const shipping = Number(form.shipping);
   const installation = Number(form.installation);
@@ -51,10 +50,10 @@ function buildProductPayload(form: FormData, product: Product | null, categoryNa
     categoryId: form.categoryId,
     categoryName,
     availableBranches,
-    quantity,
-    price,
-    minStock,
     monthsInInventory,
+    quantity,
+    mrp: Number(form.mrp),
+    minStock,
     shipping,
     installation,
     paidAmount,
@@ -78,7 +77,6 @@ interface FormData {
   availableBranches: string;
   quantity: string;
   mrp: string;
-  price: string;
   minStock: string;
   monthsInInventory: string;
   monthlyInterest: string;
@@ -93,9 +91,10 @@ interface FormErrors {
   categoryId?: string;
   availableBranches?: string;
   quantity?: string;
-  price?: string;
+  mrp?: string;
   minStock?: string;
   monthsInInventory?: string;
+  monthlyInterest?: string;
   shipping?: string;
   installation?: string;
   paidAmount?: string;
@@ -114,7 +113,6 @@ const emptyForm: FormData = {
   availableBranches: "",
   quantity: "",
   mrp: "0",
-  price: "",
   minStock: "",
   monthsInInventory: "0",
   monthlyInterest: "2500",
@@ -146,23 +144,44 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
   const selectedCategory = categories.find((c) => c.id === form.categoryId) ?? null;
   const rateInfo = getInterestRateInputForCategory(
     {
+      id: product?.id ?? "preview",
+      name: product?.name ?? "",
+      sku: product?.sku ?? "",
       categoryId: form.categoryId,
       categoryName: selectedCategory?.name ?? "",
-      monthlyInterest: Number(form.monthlyInterest || 0),
+      quantity: Number(form.quantity || 0),
+      status: product?.status ?? "in-stock",
+      minStock: Number(form.minStock || 0),
+      previousQuantity: product?.previousQuantity ?? Number(form.quantity || 0),
       createdAt: product?.createdAt ?? nowIso(),
+      updatedAt: product?.updatedAt ?? nowIso(),
+      paidAmount: Number(form.paidAmount || 0),
+      mrp: Number(form.mrp || 0),
     } as Product,
     categories
   );
   const fixedRate = rateInfo.rate;
   const isServerCategory = rateInfo.isEditable;
+  const liveMonthsInInventory = Number(form.monthsInInventory || 0);
+  const liveMrp = Number(form.mrp || 0);
+  const liveInterestCharge = fixedRate * liveMonthsInInventory;
+  const liveTotalCost = (liveMrp + liveInterestCharge) * (1 + (selectedCategory?.gstPercent ?? 0) / 100);
   const displayedInterestTotal = getInterestCharge(
     {
-      ...((product ?? {}) as Product),
+      id: product?.id ?? "preview",
+      name: product?.name ?? "",
+      sku: product?.sku ?? "",
       categoryId: form.categoryId,
       categoryName: selectedCategory?.name ?? product?.categoryName ?? "",
+      quantity: Number(form.quantity || 0),
+      status: product?.status ?? "in-stock",
+      minStock: Number(form.minStock || 0),
+      previousQuantity: product?.previousQuantity ?? Number(form.quantity || 0),
       createdAt: product?.createdAt ?? nowIso(),
-      monthlyInterest: fixedRate,
-    },
+      updatedAt: product?.updatedAt ?? nowIso(),
+      paidAmount: Number(form.paidAmount || 0),
+      mrp: Number(form.mrp || 0),
+    } as Product,
     categories
   );
 
@@ -176,10 +195,9 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
           categoryId: product.categoryId,
           availableBranches: product.availableBranches?.join(", ") ?? "",
           quantity: String(product.quantity),
-          mrp: String((product as Product & { mrp?: number }).mrp ?? product.price ?? 0),
-          price: String(product.price),
+          mrp: String((product as Product & { mrp?: number }).mrp ?? 0),
           minStock: String(product.minStock),
-          monthsInInventory: String(getMonthsInInventory(product)),
+          monthsInInventory: String(product.monthsInInventory ?? 0),
           monthlyInterest: String(interestRate),
           shipping: String(product.shipping ?? 0),
           installation: String(product.installation ?? 0),
@@ -197,10 +215,19 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
     if (!open) return;
     const nextRate = getInterestRateInputForCategory(
       {
+        id: product?.id ?? "preview",
+        name: product?.name ?? "",
+        sku: product?.sku ?? "",
         categoryId: form.categoryId,
         categoryName: selectedCategory?.name ?? "",
-        monthlyInterest: Number(form.monthlyInterest || 0),
+        quantity: Number(form.quantity || 0),
+        status: product?.status ?? "in-stock",
+        minStock: Number(form.minStock || 0),
+        previousQuantity: product?.previousQuantity ?? Number(form.quantity || 0),
         createdAt: product?.createdAt ?? nowIso(),
+        updatedAt: product?.updatedAt ?? nowIso(),
+        paidAmount: Number(form.paidAmount || 0),
+        mrp: Number(form.mrp || 0),
       } as Product,
       categories
     ).rate;
@@ -208,7 +235,7 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
     if (!isServerCategory && String(nextRate) !== form.monthlyInterest) {
       setForm((prev) => ({ ...prev, monthlyInterest: String(nextRate) }));
     }
-  }, [open, form.categoryId, categories, isServerCategory]);
+  }, [open, product, form.categoryId, categories, isServerCategory, form.monthlyInterest]);
 
   const handleChange = (field: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -259,13 +286,6 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
       next.mrp = "MRP is required";
     } else if (mrp < 0) {
       next.mrp = "MRP must be 0 or greater";
-    }
-
-    const price = Number(form.price);
-    if (Number.isNaN(price) || form.price.trim() === "") {
-      next.price = "Unit price is required";
-    } else if (price <= 0) {
-      next.price = "Price must be greater than 0";
     }
 
     const minStock = Number(form.minStock);
@@ -319,17 +339,7 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
         await onSubmit(payload);
         console.log(`[${new Date().toISOString()}] product-dialog save success`, { productId: product?.id, payload });
       } else if (product) {
-        const updates = {
-          ...buildProductPayload(form, product, category?.name ?? product.categoryName, monthsInInventory),
-          status: deriveStatus(Number(form.quantity), Number(form.minStock)),
-          mrp: Number(form.mrp),
-          price: Number(form.price),
-          quantity: Number(form.quantity),
-          minStock: Number(form.minStock),
-          paidAmount: Number(form.paidAmount),
-          shipping: Number(form.shipping),
-          installation: Number(form.installation),
-        } satisfies Partial<Product>;
+        const updates = buildProductPayload(form, product, category?.name ?? product.categoryName, monthsInInventory);
         updateProduct(product.id, updates);
         addActivity({
           id: generateId(),
@@ -342,9 +352,8 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
         console.log(`[${new Date().toISOString()}] product-dialog local save success`, { productId: product.id, updates });
       } else {
         const newProduct: Product = {
-          id: `prod-${generateId()}`,
           ...(buildProductPayload(form, null, category?.name ?? "", monthsInInventory) as Product),
-          mrp: Number(form.mrp),
+          id: `prod-${generateId()}`,
           previousQuantity: Number(form.quantity),
           image: `https://picsum.photos/400/300?random=${Date.now()}`,
           description: "",
@@ -468,23 +477,6 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
               />
               {errors.quantity && (
                 <p className="text-xs text-destructive">{errors.quantity}</p>
-              )}
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label htmlFor="price">Price ($)</Label>
-              <Input
-                id="price"
-                type="number"
-                min={0.01}
-                step={0.01}
-                value={form.price}
-                onChange={(e) => handleChange("price", e.target.value)}
-                placeholder="0.00"
-                aria-invalid={!!errors.price}
-              />
-              {errors.price && (
-                <p className="text-xs text-destructive">{errors.price}</p>
               )}
             </div>
 

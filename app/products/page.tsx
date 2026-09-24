@@ -43,7 +43,7 @@ export default function ProductsPage() {
   const currentUser = useAuthStore((s) => s.currentUser);
   const gstConfig = useInventoryStore.getState().gstConfig;
   const updateGstConfig = useInventoryStore.getState().updateGstConfig;
-  const updateStoreProduct = useInventoryStore((s) => s.updateProduct);
+  const updateStoreProduct = useInventoryStore((state: ReturnType<typeof useInventoryStore.getState>) => state.updateProduct);
   const searchParams = useSearchParams();
   const initialCategoryId = searchParams.get("categoryId");
 
@@ -63,6 +63,7 @@ export default function ProductsPage() {
   const [deletingProduct, setDeletingProduct] = React.useState<Product | null>(null);
   const [excelDialogOpen, setExcelDialogOpen] = React.useState(false);
   const [gstValue, setGstValue] = React.useState(String(gstConfig.value));
+  const productsQueryKey = React.useMemo(() => ["products", filters] as const, [filters]);
 
   React.useEffect(() => {
     const categoryId = searchParams.get("categoryId");
@@ -85,7 +86,7 @@ export default function ProductsPage() {
 
   // Data fetching
   const { data: products = [], isLoading: productsLoading } = useQuery({
-    queryKey: ["products", filters],
+    queryKey: productsQueryKey,
     queryFn: () => apiGetProducts(filters).then(res => res.products),
   });
 
@@ -97,8 +98,8 @@ export default function ProductsPage() {
   // Mutations
   const createMutation = useMutation({
     mutationFn: apiCreateProduct,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: productsQueryKey });
       toast.success("Product created successfully");
       setDialogOpen(false);
     },
@@ -107,10 +108,10 @@ export default function ProductsPage() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) => apiUpdateProduct(id, data),
-    onSuccess: (updatedProduct, variables) => {
+    onSuccess: async (updatedProduct, variables) => {
       updateStoreProduct(variables.id, updatedProduct);
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      await queryClient.invalidateQueries({ queryKey: productsQueryKey });
+      await queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Product updated successfully");
       setDialogOpen(false);
     },
@@ -119,8 +120,8 @@ export default function ProductsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: apiDeleteProduct,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: productsQueryKey });
       toast.success("Product deleted successfully");
       setDeleteOpen(false);
     },

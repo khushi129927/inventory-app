@@ -59,8 +59,7 @@ export function getMonthsInInventory(product: Product): number {
 
 export function getInterestCharge(product: Product, categories: Category[] = []): number {
   const monthlyRate = getMonthlyRateForCategory(product, categories);
-  const gstPercent = getGstPercentForCategory(product, categories);
-  const monthsInInventory = getMonthsInInventory(product);
+  const monthsInInventory = product.monthsInInventory ?? 0;
   return monthlyRate * monthsInInventory;
 }
 
@@ -70,16 +69,21 @@ export function getInterestRateInputForCategory(product: Product, categories: Ca
 } {
   const categoryName = categories.find((category) => category.id === product.categoryId)?.name ?? product.categoryName;
   const normalized = categoryName.trim().toLowerCase();
+  const productWithInterest = product as Product & { monthlyInterest?: number };
 
   if (normalized.includes("server")) {
-    return { rate: Number.isFinite(product.monthlyInterest) ? product.monthlyInterest : DEFAULT_CATEGORY_MONTHLY_RATES.Server, isEditable: true };
+    const monthlyInterest = productWithInterest.monthlyInterest ?? DEFAULT_CATEGORY_MONTHLY_RATES.Server;
+    return {
+      rate: Number.isFinite(monthlyInterest) ? monthlyInterest : DEFAULT_CATEGORY_MONTHLY_RATES.Server,
+      isEditable: true,
+    };
   }
 
   return { rate: getMonthlyRateForCategory(product, categories), isEditable: false };
 }
 
 export function getTotalCost(product: Product, categories: Category[] = []): number {
-  const mrp = Number((product as Product & { mrp?: number }).mrp ?? product.price ?? 0);
+  const mrp = Number((product as Product & { mrp?: number }).mrp ?? 0);
   const gstPercent = getGstPercentForCategory(product, categories);
   return (mrp + getInterestCharge(product, categories)) * (1 + gstPercent / 100);
 }

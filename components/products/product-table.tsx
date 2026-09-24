@@ -6,8 +6,6 @@ import type { Category, Product, UserRole } from "@/app/types/inventory";
 import { useInventoryStore } from "@/lib/store";
 import {
   getInterestCharge,
-  getMonthlyRateForCategory,
-  getMonthsInInventory,
   getOutstandingCost,
   getTotalCost,
 } from "@/lib/cost-utils";
@@ -124,8 +122,6 @@ export default function ProductTable({
   const categories = useInventoryStore((state) => state.categories) as Category[];
   const showActions = Boolean(onEdit || onDelete);
   const isExecutive = role === "executive";
-  const isAdmin = role === "admin";
-  const isManager = role === "manager";
   const canSeeBranches = isExecutive;
   const isPreviousStockView = stockView === "previous";
   const showPreviousStock = !canSeeBranches && isPreviousStockView;
@@ -143,37 +139,7 @@ export default function ProductTable({
   const goPrev = () => onPageChange(Math.max(1, safePage - 1));
   const goNext = () => onPageChange(Math.min(totalPages, safePage + 1));
 
-  const adminColumns = [
-    "name",
-    "sku",
-    "category",
-    "stock",
-    "mrp",
-    "availableBranches",
-    "price",
-    "status",
-    "description",
-    "minStock",
-    "monthsInInventory",
-    "interestCharge",
-    "currentCost",
-    "createdAt",
-    "updatedAt",
-  ];
-
-  const execColumns = [
-    "name",
-    "sku",
-    "category",
-    "branches",
-    "status",
-    "description",
-    "createdAt",
-    "updatedAt",
-  ];
-
-  const columns = isExecutive ? execColumns : adminColumns;
-  const colSpan = columns.length + (showActions ? 1 : 0);
+  const colSpan = (canSeeBranches ? 8 : 13) + (showActions ? 1 : 0);
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm">
@@ -190,13 +156,8 @@ export default function ProductTable({
                   {showPreviousStock ? "Previous Stock" : "Current Stock"}
                 </TableHead>
               )}
-              {!canSeeBranches && (
-                <TableHead className="text-right">MRP</TableHead>
-              )}
+               {!canSeeBranches && <TableHead className="text-right">MRP</TableHead>}
               {!canSeeBranches && <TableHead>Available Branches</TableHead>}
-              {!canSeeBranches && (
-                <TableHead className="text-right">Price</TableHead>
-              )}
               <TableHead>Status</TableHead>
               <TableHead className="w-[240px]">Description</TableHead>
               {!canSeeBranches && (
@@ -268,16 +229,6 @@ export default function ProductTable({
                     </TableCell>
                   )}
                   {!canSeeBranches && (
-                    <TableCell className="text-right tabular-nums">
-                      ${(((product as Product & { mrp?: number }).mrp ?? product.price) ?? 0).toFixed(2)}
-                    </TableCell>
-                  )}
-                  {!canSeeBranches && (
-                    <TableCell className="text-right tabular-nums">
-                      ${product.price.toFixed(2)}
-                    </TableCell>
-                  )}
-                  {!canSeeBranches && (
                     <TableCell className="text-muted-foreground">
                       {product.availableBranches?.length
                         ? product.availableBranches.join(", ")
@@ -299,7 +250,7 @@ export default function ProductTable({
                   )}
                   {!canSeeBranches && (
                     <TableCell className="text-right tabular-nums">
-                      {getMonthsInInventory(product)}
+                      {product.monthsInInventory ?? 0}
                     </TableCell>
                   )}
                   {!canSeeBranches && (
@@ -309,10 +260,7 @@ export default function ProductTable({
                   )}
                   {!canSeeBranches && (
                     <TableCell className="text-right tabular-nums">
-                      ${(
-                        getInterestCharge(product, categories) -
-                        getMonthsInInventory(product) * getMonthlyRateForCategory(product, categories)
-                      ).toFixed(2)}
+                      ${getInterestCharge(product, categories).toFixed(2)}
                     </TableCell>
                   )}
                   {!canSeeBranches && (

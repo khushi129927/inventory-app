@@ -1,0 +1,44 @@
+components/build-history/build-history-view.tsx(37,42): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/build-history/build-history-view.tsx(38,47): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/build-history/build-history-view.tsx(50,29): error TS7006: Parameter 'build' implicitly has an 'any' type.
+components/dashboard/metric-cards.tsx(34,51): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/pc-builder/builder-workspace.tsx(79,42): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/pc-builder/builder-workspace.tsx(88,37): error TS7006: Parameter 'b' implicitly has an 'any' type.
+components/pc-builder/builder-workspace.tsx(94,26): error TS7006: Parameter 'item' implicitly has an 'any' type.
+components/pc-builder/save-build-dialog.tsx(47,42): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/pc-builder/save-build-dialog.tsx(48,40): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/products/delete-product-dialog.tsx(39,40): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/products/delete-product-dialog.tsx(40,44): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/products/delete-product-dialog.tsx(41,42): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/products/delete-product-dialog.tsx(45,23): error TS7006: Parameter 'm' implicitly has an 'any' type.
+components/products/product-dialog.tsx(141,41): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/products/product-dialog.tsx(142,39): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/products/product-dialog.tsx(143,41): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/products/product-dialog.tsx(144,44): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/products/product-dialog.tsx(145,42): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/products/product-dialog.tsx(150,45): error TS7006: Parameter 'c' implicitly has an 'any' type.
+components/products/product-dialog.tsx(152,5): error TS2345: Argument of type 'ProductPreview' is not assignable to parameter of type 'Product'.
+  Types of property 'mrp' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+components/products/product-dialog.tsx(173,5): error TS2345: Argument of type 'ProductPreview' is not assignable to parameter of type 'Product'.
+  Types of property 'mrp' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+components/products/product-dialog.tsx(222,7): error TS2345: Argument of type 'ProductPreview' is not assignable to parameter of type 'Product'.
+  Types of property 'mrp' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+components/products/product-dialog.tsx(268,10): error TS7006: Parameter 'p' implicitly has an 'any' type.
+components/products/product-dialog.tsx(348,41): error TS7006: Parameter 'c' implicitly has an 'any' type.
+components/products/product-dialog.tsx(456,34): error TS7006: Parameter 'cat' implicitly has an 'any' type.
+components/products/product-table.tsx(124,41): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/settings/danger-zone-card.tsx(20,49): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/settings/organization-profile-card.tsx(18,43): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/settings/organization-profile-card.tsx(19,49): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/settings/organization-settings-page.tsx(55,43): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/settings/organization-settings-page.tsx(56,49): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/settings/organization-settings-page.tsx(57,49): error TS7006: Parameter 'state' implicitly has an 'any' type.
+lib/store.ts(213,14): error TS7022: 'useInventoryStore' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+lib/store.ts(271,7): error TS7023: 'resetWorkspaceData' implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.
+lib/store.ts(272,13): error TS7024: Function implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.

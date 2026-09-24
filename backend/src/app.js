@@ -39,9 +39,11 @@ const productSchema = z.object({
   name: sanitizedText(200),
   sku: z.string().trim().min(1).max(100),
   categoryId: z.string().trim().min(1).max(100),
+  availableBranches: z.array(z.string().trim().min(1).max(100)).optional(),
   quantity: z.number().int().min(0),
-  price: z.number().min(0).max(1_000_000),
+  mrp: z.number().min(0).max(1_000_000),
   minStock: z.number().int().min(0).max(1_000_000),
+  monthsInInventory: z.number().int().min(0).max(1_000_000).optional(),
   monthlyInterest: z.number().min(0).max(100),
   previousQuantity: z.number().int().min(0).max(1_000_000),
   paidAmount: z.number().min(0).max(1_000_000),
@@ -500,8 +502,16 @@ export function createApp(dependencies) {
           payload: data,
         });
         const product = await inventory.updateProduct(req.params.id, data);
-        console.log(`[${new Date().toISOString()}] PATCH /products/${req.params.id} success`, product);
-        res.status(200).json(product);
+        const responseProduct = {
+          ...product,
+          availableBranches:
+            product.availableBranches ??
+            (Array.isArray(product.branches)
+              ? product.branches.map((branch) => branch?.name ?? branch?.branch?.name ?? branch)
+              : []),
+        };
+        console.log(`[${new Date().toISOString()}] PATCH /products/${req.params.id} success`, responseProduct);
+        res.status(200).json(responseProduct);
       } catch (error) {
         console.error(`[${new Date().toISOString()}] PATCH /products/${req.params.id} failed`, error);
         sanitizeServerError(res, error);
