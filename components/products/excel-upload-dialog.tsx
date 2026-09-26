@@ -117,7 +117,7 @@ export default function ExcelUploadDialog({
         sku: row.sku!,
         category: row.category!,
         quantity: row.quantity!,
-        price: row.price!,
+        price: row.mrp!,
         minStock: row.minStock!,
         monthlyInterest: row.monthlyInterest,
         description: row.description || "",
@@ -130,7 +130,14 @@ export default function ExcelUploadDialog({
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["categories"] });
 
-      toast.success(`Imported ${results.updated} product(s)`);
+      const successMsg = `Imported ${results.created} new product(s), updated ${results.updated} product(s).`;
+      if (results.errors.length > 0) {
+        toast.error(`${successMsg} ${results.errors.length} row(s) failed.`, {
+          description: results.errors.slice(0, 3).map(e => `Row ${e.row}: ${e.error}`).join(", ") + (results.errors.length > 3 ? "..." : ""),
+        });
+      } else {
+        toast.success(successMsg);
+      }
       onOpenChange(false);
     } catch (err: any) {
       console.error("Import error:", err);

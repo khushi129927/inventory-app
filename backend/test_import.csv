@@ -1,0 +1,4 @@
+Name,SKU,Category,Quantity,Price,Min Stock,Description
+Test Product 1,TEST-001,CPU,10,500,2,Test CPU
+Test Product 2,TEST-002,GPU,5,1200,1,Test GPU
+Test Product 3,TEST-003,RAM,20,100,5,Test RAM

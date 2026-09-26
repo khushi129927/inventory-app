@@ -345,6 +345,38 @@ export function createApp(dependencies) {
     }
   });
 
+  app.patch(
+    "/categories/gst",
+    ...withSession(auth, (_req, _res, next) => {
+      next();
+    }),
+    roleGuard("admin"),
+    csrfProtection,
+    async (req, res) => {
+      try {
+        console.log(`[${new Date().toISOString()}] PATCH /categories/gst received`, {
+          body: req.body,
+        });
+        const gstPercent = Number(req.body?.gstPercent);
+        if (Number.isNaN(gstPercent) || gstPercent < 0) {
+          res.status(400).json({ message: "GST percentage must be 0 or greater" });
+          return;
+        }
+
+        console.log(`[${new Date().toISOString()}] PATCH /categories/gst updating categories`, {
+          gstPercent,
+        });
+        const categories = await inventory.updateAllCategoriesGst(gstPercent);
+        console.log(`[${new Date().toISOString()}] PATCH /categories/gst success`, {
+          updatedCount: categories.length,
+        });
+        res.status(200).json({ categories });
+      } catch (error) {
+        sanitizeServerError(res, error, "PATCH /categories/gst failed");
+      }
+    }
+  );
+
   app.get(
     "/users",
     ...withSession(auth, (_req, _res, next) => {

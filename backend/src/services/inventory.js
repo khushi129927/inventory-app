@@ -149,6 +149,21 @@ export function createInventoryService(prisma, options = {}) {
       });
     },
 
+    async updateAllCategoriesGst(gstPercent) {
+      if (!hasPrismaModels(prisma)) {
+        const result = await prisma.query('update categories set gst_percent = $1 returning *', [gstPercent]);
+        return result.rows;
+      }
+
+      await prisma.category.updateMany({
+        data: { gstPercent },
+      });
+
+      return prisma.category.findMany({
+        orderBy: { name: 'asc' },
+      });
+    },
+
     async listBranches() {
       if (!hasPrismaModels(prisma)) {
         const result = await prisma.query("select * from branches");
@@ -353,7 +368,13 @@ export function createInventoryService(prisma, options = {}) {
     },
 
     async createProduct(data) {
-      return prisma.product.create({ data });
+      return prisma.product.create({
+        data: {
+          ...data,
+          price: data.price ?? data.mrp ?? 0,
+          monthlyInterest: data.monthlyInterest ?? 0,
+        },
+      });
     },
 
     async updateProduct(id, data) {

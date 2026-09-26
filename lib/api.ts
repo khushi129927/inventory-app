@@ -140,6 +140,13 @@ export async function apiGetCategories(): Promise<{ categories: Category[] }> {
   return apiRequest<{ categories: Category[] }>("/categories");
 }
 
+export async function apiUpdateCategoriesGst(gstPercent: number): Promise<{ categories: Category[] }> {
+  return apiRequest<{ categories: Category[] }>("/categories/gst", {
+    method: "PATCH",
+    body: { gstPercent },
+  });
+}
+
 export async function apiGetBranches(): Promise<{ branches: any[] }> {
   return apiRequest<{ branches: any[] }>("/branches");
 }

@@ -6,6 +6,7 @@ import type { Category, Product, UserRole } from "@/app/types/inventory";
 import { useInventoryStore } from "@/lib/store";
 import {
   getInterestCharge,
+  getGstPercentForCategory,
   getOutstandingCost,
   getTotalCost,
 } from "@/lib/cost-utils";
@@ -156,7 +157,6 @@ export default function ProductTable({
                   {showPreviousStock ? "Previous Stock" : "Current Stock"}
                 </TableHead>
               )}
-               {!canSeeBranches && <TableHead className="text-right">MRP</TableHead>}
               {!canSeeBranches && <TableHead>Available Branches</TableHead>}
               <TableHead>Status</TableHead>
               <TableHead className="w-[240px]">Description</TableHead>
@@ -166,6 +166,7 @@ export default function ProductTable({
               {!canSeeBranches && (
                 <TableHead className="text-right">Months in Inventory</TableHead>
               )}
+              {!canSeeBranches && <TableHead className="text-right">MRP</TableHead>}
               {!canSeeBranches && (
                 <TableHead className="text-right">Interest Charge</TableHead>
               )}
@@ -255,12 +256,21 @@ export default function ProductTable({
                   )}
                   {!canSeeBranches && (
                     <TableCell className="text-right tabular-nums">
-                      ${getInterestCharge(product, categories).toFixed(2)}
+                      ${(((product as Product & { mrp?: number }).mrp ?? 0)).toFixed(2)}
                     </TableCell>
                   )}
                   {!canSeeBranches && (
                     <TableCell className="text-right tabular-nums">
                       ${getInterestCharge(product, categories).toFixed(2)}
+                    </TableCell>
+                  )}
+                  {!canSeeBranches && (
+                    <TableCell className="text-right tabular-nums">
+                      ${(
+                        (((product as Product & { mrp?: number }).mrp ?? 0) +
+                          getInterestCharge(product, categories)) *
+                        (getGstPercentForCategory(product, categories) / 100)
+                      ).toFixed(2)}
                     </TableCell>
                   )}
                   {!canSeeBranches && (

@@ -34,15 +34,16 @@ import {
   apiGetCategories,
   apiCreateProduct,
   apiUpdateProduct,
-  apiDeleteProduct
+  apiDeleteProduct,
+  apiUpdateCategoriesGst,
 } from "@/lib/api";
 import { useInventoryStore } from "@/lib/store";
 
 export default function ProductsPage() {
   const queryClient = useQueryClient();
   const currentUser = useAuthStore((s) => s.currentUser);
-  const gstConfig = useInventoryStore.getState().gstConfig;
-  const updateGstConfig = useInventoryStore.getState().updateGstConfig;
+  const gstConfig = useInventoryStore((state) => state.gstConfig);
+  const updateGstConfig = useInventoryStore((state) => state.updateGstConfig);
   const updateStoreProduct = useInventoryStore((state: ReturnType<typeof useInventoryStore.getState>) => state.updateProduct);
   const searchParams = useSearchParams();
   const initialCategoryId = searchParams.get("categoryId");
@@ -95,6 +96,15 @@ export default function ProductsPage() {
     queryFn: () => apiGetCategories().then(res => res.categories),
   });
 
+  React.useEffect(() => {
+    if (categories.length > 0) {
+      useInventoryStore.setState((state) => ({
+        ...state,
+        categories,
+      }));
+    }
+  }, [categories]);
+
   // Mutations
   const createMutation = useMutation({
     mutationFn: apiCreateProduct,
@@ -143,15 +153,26 @@ export default function ProductsPage() {
     setDeleteOpen(true);
   };
 
-  const handleGstSave = () => {
+  const handleGstSave = async () => {
+    console.log("Save GST clicked, calling API");
     const parsedValue = Number(gstValue);
     if (Number.isNaN(parsedValue) || parsedValue < 0) {
       toast.error("GST value must be 0 or greater");
       return;
     }
 
-    updateGstConfig({ mode: gstConfig.mode, value: parsedValue });
-    toast.success("GST settings updated");
+    try {
+      const response = await apiUpdateCategoriesGst(parsedValue);
+      updateGstConfig({ mode: gstConfig.mode, value: parsedValue });
+      useInventoryStore.setState((state) => ({
+        ...state,
+        categories: response.categories,
+      }));
+      queryClient.setQueryData(["categories"], response.categories);
+      toast.success("GST settings updated");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update GST settings");
+    }
   };
 
   if (!currentUser) {
