@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "node src/server.js",
     "start": "node src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "snapshot:daily-stock": "node src/jobs/daily-product-stock-snapshot.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

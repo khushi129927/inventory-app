@@ -5,11 +5,13 @@ import { format } from "date-fns";
 import type { Category, Product, UserRole } from "@/app/types/inventory";
 import { useInventoryStore } from "@/lib/store";
 import {
+  formatCurrency,
   getInterestCharge,
   getGstPercentForCategory,
   getOutstandingCost,
   getTotalCost,
 } from "@/lib/cost-utils";
+import { formatCurrency as formatCurrencyValue } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -256,26 +258,28 @@ export default function ProductTable({
                   )}
                   {!canSeeBranches && (
                     <TableCell className="text-right tabular-nums">
-                      ${(((product as Product & { mrp?: number }).mrp ?? 0)).toFixed(2)}
+                      {formatCurrencyValue(((product as Product & { mrp?: number }).mrp ?? 0), "INR - Indian Rupee", 2)}
                     </TableCell>
                   )}
                   {!canSeeBranches && (
                     <TableCell className="text-right tabular-nums">
-                      ${getInterestCharge(product, categories).toFixed(2)}
+                      {formatCurrency(getInterestCharge(product, categories))}
                     </TableCell>
                   )}
                   {!canSeeBranches && (
                     <TableCell className="text-right tabular-nums">
-                      ${(
+                      {formatCurrencyValue(
                         (((product as Product & { mrp?: number }).mrp ?? 0) +
                           getInterestCharge(product, categories)) *
-                        (getGstPercentForCategory(product, categories) / 100)
-                      ).toFixed(2)}
+                          (getGstPercentForCategory(product, categories) / 100),
+                        "INR - Indian Rupee",
+                        2
+                      )}
                     </TableCell>
                   )}
                   {!canSeeBranches && (
                     <TableCell className="text-right tabular-nums">
-                      ${getTotalCost(product, categories).toFixed(2)}
+                      {formatCurrency(getTotalCost(product, categories))}
                     </TableCell>
                   )}
                   <TableCell className="text-muted-foreground whitespace-nowrap">

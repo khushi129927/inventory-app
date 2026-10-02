@@ -43,6 +43,8 @@ function buildProductPayload(form: FormData, product: Product | null, categoryNa
   const installation = Number(form.installation);
   const paidAmount = Number(form.paidAmount);
   const status = deriveStatus(quantity, minStock);
+  const normalizedCategoryName = categoryName.trim().toLowerCase();
+  const monthlyInterest = Number(form.monthlyInterest);
 
   return {
     name: form.name.trim(),
@@ -51,6 +53,9 @@ function buildProductPayload(form: FormData, product: Product | null, categoryNa
     categoryName,
     availableBranches,
     monthsInInventory,
+    ...(normalizedCategoryName.includes("server")
+      ? { monthlyInterest: Number.isFinite(monthlyInterest) ? monthlyInterest : 2500 }
+      : {}),
     quantity,
     mrp: Number(form.mrp),
     minStock,
@@ -181,6 +186,7 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
       updatedAt: product?.updatedAt ?? nowIso(),
       paidAmount: Number(form.paidAmount || 0),
       mrp: Number(form.mrp || 0),
+      monthlyInterest: Number(form.monthlyInterest || 2500),
     } as Product,
     categories
   );
@@ -227,8 +233,10 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
         createdAt: product?.createdAt ?? nowIso(),
         updatedAt: product?.updatedAt ?? nowIso(),
         paidAmount: Number(form.paidAmount || 0),
-        mrp: Number(form.mrp || 0),
-      } as Product,
+      mrp: Number(form.mrp || 0),
+      monthlyInterest: Number(form.monthlyInterest || 2500),
+    } as Product,
+
       categories
     ).rate;
 
@@ -481,7 +489,7 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
             </div>
 
             <div className="grid gap-1.5">
-              <Label htmlFor="mrp">MRP ($)</Label>
+              <Label htmlFor="mrp">MRP (₹)</Label>
               <Input
                 id="mrp"
                 type="number"
@@ -533,7 +541,7 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
             )}
 
             <div className="grid gap-1.5">
-              <Label htmlFor="shipping">Shipping ($)</Label>
+              <Label htmlFor="shipping">Shipping (₹)</Label>
               <Input
                 id="shipping"
                 type="number"
@@ -550,7 +558,7 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
             </div>
 
             <div className="grid gap-1.5">
-              <Label htmlFor="installation">Install ($)</Label>
+              <Label htmlFor="installation">Install (₹)</Label>
               <Input
                 id="installation"
                 type="number"
@@ -567,7 +575,7 @@ export default function ProductDialog({ open, onOpenChange, product, onSubmit }:
             </div>
 
             <div className="grid gap-1.5">
-              <Label htmlFor="paidAmount">Paid Amount ($)</Label>
+              <Label htmlFor="paidAmount">Paid Amount (₹)</Label>
               <Input
                 id="paidAmount"
                 type="number"

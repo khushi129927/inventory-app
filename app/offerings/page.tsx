@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Icon from "@/components/Icon";
+import { formatCurrency } from "@/lib/utils";
 
 const now = () => new Date().toISOString();
 
@@ -298,7 +299,7 @@ export default function OfferingsPage() {
                   </p>
                 </div>
                 <p className="text-lg font-semibold tracking-tight text-foreground">
-                  ${product.price.toFixed(2)}
+                  {formatCurrency(product.price, "INR - Indian Rupee", 2)}
                 </p>
               </CardContent>
             </Card>
@@ -441,25 +442,25 @@ export default function OfferingsPage() {
                 <div className="space-y-0.5 text-sm text-muted-foreground">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>${totals.subtotal.toFixed(2)}</span>
+                    <span>{formatCurrency(totals.subtotal, "INR - Indian Rupee", 2)}</span>
                   </div>
                   {totals.shippingTotal > 0 && (
                     <div className="flex justify-between">
                       <span>Shipping</span>
-                      <span>${totals.shippingTotal.toFixed(2)}</span>
+                      <span>{formatCurrency(totals.shippingTotal, "INR - Indian Rupee", 2)}</span>
                     </div>
                   )}
                   {totals.installationTotal > 0 && (
                     <div className="flex justify-between">
                       <span>Installation</span>
-                      <span>${totals.installationTotal.toFixed(2)}</span>
+                      <span>{formatCurrency(totals.installationTotal, "INR - Indian Rupee", 2)}</span>
                     </div>
                   )}
                 </div>
               )}
               <div className="flex justify-between text-base font-bold text-foreground">
                 <span>Total</span>
-                <span>${totals.grandTotal.toFixed(2)}</span>
+                <span>{formatCurrency(totals.grandTotal, "INR - Indian Rupee", 2)}</span>
               </div>
 
               <Button type="submit" className="w-full">

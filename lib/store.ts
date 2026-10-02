@@ -5,7 +5,6 @@ import type {
   Category,
   OrganizationProfile,
   Product,
-  SavedBuild,
   User,
   UserRole,
   StockMovement,
@@ -25,7 +24,6 @@ interface InventoryUIState {
   updateOrganization: (updates: Partial<OrganizationProfile>) => void;
   gstConfig: GstConfig;
   updateGstConfig: (updates: Partial<GstConfig>) => void;
-  builderVersion: number;
 }
 
 interface InventoryStoreState extends InventoryUIState {
@@ -34,9 +32,6 @@ interface InventoryStoreState extends InventoryUIState {
   categories: Category[];
   movements: StockMovement[];
   activities: ActivityItem[];
-  savedBuilds: SavedBuild[];
-  saveBuild: (build: SavedBuild) => void;
-  deleteSavedBuild: (id: string) => void;
   addProduct: (product: Product) => void;
   updateProduct: (id: string, updates: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
@@ -46,7 +41,7 @@ interface InventoryStoreState extends InventoryUIState {
 
 const DEFAULT_ORGANIZATION: OrganizationProfile = {
   name: "StockForge Industries",
-  currency: "USD - United States Dollar",
+  currency: "INR - Indian Rupee",
   warehouseLocation: "Portland, OR - Building C",
   inviteEmail: "",
   inviteRole: "manager",
@@ -162,7 +157,6 @@ const DEFAULT_PRODUCTS: Product[] = [
 
 const DEFAULT_MOVEMENTS: StockMovement[] = [];
 const DEFAULT_ACTIVITIES: ActivityItem[] = [];
-const DEFAULT_SAVED_BUILDS: SavedBuild[] = [];
 
 function cloneProducts() {
   return DEFAULT_PRODUCTS.map((product) => ({ ...product, availableBranches: [...(product.availableBranches ?? [])] }));
@@ -180,26 +174,16 @@ function cloneActivities() {
   return DEFAULT_ACTIVITIES.map((activity) => ({ ...activity }));
 }
 
-function cloneSavedBuilds() {
-  return DEFAULT_SAVED_BUILDS.map((build) => ({
-    ...build,
-    items: build.items.map((item) => ({ ...item })),
-    margin: { ...build.margin },
-  }));
-}
-
-function buildInitialState(): Omit<InventoryStoreState, "setSidebarOpen" | "updateOrganization" | "updateGstConfig" | "saveBuild" | "deleteSavedBuild" | "addProduct" | "updateProduct" | "deleteProduct" | "addActivity" | "resetWorkspaceData"> {
+function buildInitialState(): Omit<InventoryStoreState, "setSidebarOpen" | "updateOrganization" | "updateGstConfig" | "addProduct" | "updateProduct" | "deleteProduct" | "addActivity" | "resetWorkspaceData"> {
   return {
     sidebarOpen: true,
     organization: { ...DEFAULT_ORGANIZATION },
     gstConfig: { mode: "percentage", value: 18 },
-    builderVersion: 2,
     currentUser: { ...DEFAULT_USER },
     products: cloneProducts(),
     categories: cloneCategories(),
     movements: cloneMovements(),
     activities: cloneActivities(),
-    savedBuilds: cloneSavedBuilds(),
   };
 }
 
@@ -222,14 +206,6 @@ export const useInventoryStore = create<InventoryStoreState>()(
       updateGstConfig: (updates) =>
         set((state) => ({
           gstConfig: { ...state.gstConfig, ...updates },
-        })),
-      saveBuild: (build) =>
-        set((state) => ({
-          savedBuilds: [build, ...state.savedBuilds.filter((item) => item.id !== build.id)],
-        })),
-      deleteSavedBuild: (id) =>
-        set((state) => ({
-          savedBuilds: state.savedBuilds.filter((build) => build.id !== id),
         })),
       addProduct: (product) =>
         set((state) => {
@@ -269,22 +245,24 @@ export const useInventoryStore = create<InventoryStoreState>()(
           ],
         })),
       resetWorkspaceData: () =>
-        set(() => ({
-          ...buildInitialState(),
-          setSidebarOpen: useInventoryStore.getState().setSidebarOpen,
-          updateOrganization: useInventoryStore.getState().updateOrganization,
-          updateGstConfig: useInventoryStore.getState().updateGstConfig,
-          saveBuild: useInventoryStore.getState().saveBuild,
-          deleteSavedBuild: useInventoryStore.getState().deleteSavedBuild,
-          addProduct: useInventoryStore.getState().addProduct,
-          updateProduct: useInventoryStore.getState().updateProduct,
-          deleteProduct: useInventoryStore.getState().deleteProduct,
-          addActivity: useInventoryStore.getState().addActivity,
-          resetWorkspaceData: useInventoryStore.getState().resetWorkspaceData,
-        })),
+        set(buildInitialState()),
     }),
     {
       name: "inventory-store",
+      version: 1,
+      migrate: (persistedState: any, version) => {
+        if (version < 1 && persistedState?.organization) {
+          return {
+            ...persistedState,
+            organization: {
+              ...persistedState.organization,
+              currency: "INR - Indian Rupee",
+            },
+          };
+        }
+
+        return persistedState;
+      },
       partialize: (state) => ({
         organization: state.organization,
         gstConfig: state.gstConfig,
@@ -292,8 +270,6 @@ export const useInventoryStore = create<InventoryStoreState>()(
         categories: state.categories,
         movements: state.movements,
         activities: state.activities,
-        savedBuilds: state.savedBuilds,
-        builderVersion: state.builderVersion,
       }),
     }
   )

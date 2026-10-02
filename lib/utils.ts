@@ -15,7 +15,7 @@ const CURRENCY_CODE_BY_LABEL: Record<string, string> = {
 
 export function getCurrencyCode(currency: string): string {
   if (!currency) {
-    return "USD";
+    return "INR";
   }
 
   if (CURRENCY_CODE_BY_LABEL[currency]) {
@@ -23,11 +23,11 @@ export function getCurrencyCode(currency: string): string {
   }
 
   const [prefix] = currency.split(" - ");
-  return prefix?.trim() || "USD";
+  return prefix?.trim() || "INR";
 }
 
 export function formatCurrency(value: number, currency: string, maximumFractionDigits = 0): string {
-  return value.toLocaleString(undefined, {
+  return value.toLocaleString("en-IN", {
     style: "currency",
     currency: getCurrencyCode(currency),
     maximumFractionDigits,

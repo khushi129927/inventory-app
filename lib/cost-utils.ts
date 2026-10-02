@@ -1,5 +1,6 @@
 import { differenceInCalendarMonths } from "date-fns";
 import type { Category, Product } from "@/app/types/inventory";
+import { formatCurrency as formatCurrencyValue } from "@/lib/utils";
 
 export const DEFAULT_CATEGORY_MONTHLY_RATES: Record<string, number> = {
   Laptop: 300,
@@ -20,21 +21,14 @@ function inferCategoryMonthlyRate(categoryName: string): number {
   if (normalizedCategory.includes("desktop")) return DEFAULT_CATEGORY_MONTHLY_RATES.Desktop;
   if (normalizedCategory.includes("workstation")) return DEFAULT_CATEGORY_MONTHLY_RATES.Workstation;
   if (normalizedCategory.includes("server")) return DEFAULT_CATEGORY_MONTHLY_RATES.Server;
-  if (
-    normalizedCategory.includes("ram") ||
-    normalizedCategory.includes("ssd") ||
-    normalizedCategory.includes("accessor")
-  ) {
-    return DEFAULT_CATEGORY_MONTHLY_RATES.Accessory;
-  }
 
-  return 0;
+  return DEFAULT_CATEGORY_MONTHLY_RATES.Accessory;
 }
 
 export function getMonthlyRateForCategory(product: Product, categories: Category[] = []): number {
   const matchedCategory = categories.find((category) => category.id === product.categoryId);
 
-  if (matchedCategory && Number.isFinite(matchedCategory.monthlyRate)) {
+  if (matchedCategory && Number.isFinite(matchedCategory.monthlyRate) && matchedCategory.monthlyRate > 0) {
     return matchedCategory.monthlyRate;
   }
 
@@ -58,9 +52,9 @@ export function getMonthsInInventory(product: Product): number {
 }
 
 export function getInterestCharge(product: Product, categories: Category[] = []): number {
-  const monthlyRate = getMonthlyRateForCategory(product, categories);
+  const rateInfo = getInterestRateInputForCategory(product, categories);
   const monthsInInventory = product.monthsInInventory ?? 0;
-  return monthlyRate * monthsInInventory;
+  return rateInfo.rate * monthsInInventory;
 }
 
 export function getInterestRateInputForCategory(product: Product, categories: Category[] = []): {
@@ -97,7 +91,5 @@ export function getTotalInterestCost(products: Product[], categories: Category[]
 }
 
 export function formatCurrency(value: number): string {
-  return `₹${value.toLocaleString("en-IN", {
-    maximumFractionDigits: 0,
-  })}`;
+  return formatCurrencyValue(value, "INR - Indian Rupee", 0);
 }

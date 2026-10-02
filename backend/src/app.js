@@ -44,7 +44,7 @@ const productSchema = z.object({
   mrp: z.number().min(0).max(1_000_000),
   minStock: z.number().int().min(0).max(1_000_000),
   monthsInInventory: z.number().int().min(0).max(1_000_000).optional(),
-  monthlyInterest: z.number().min(0).max(100),
+  monthlyInterest: z.number().min(0).max(1_000_000).optional(),
   previousQuantity: z.number().int().min(0).max(1_000_000),
   paidAmount: z.number().min(0).max(1_000_000),
   status: z.enum(["in-stock", "low-stock", "out-of-stock", "discontinued"]),

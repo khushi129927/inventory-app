@@ -90,11 +90,6 @@ const lowStockPath = path.join(process.cwd(), "components", "dashboard", "low-st
 const lowStock = fs.readFileSync(lowStockPath, "utf8");
 assert(lowStock.includes("border-0 bg-[#E0F5F2] text-[#0B7A6D] hover:bg-[#E0F5F2]"), "Expected low stock badge to use the exported StockForge chip styling");
 
-const buildListPath = path.join(process.cwd(), "components", "build-history", "build-list.tsx");
-const buildList = fs.readFileSync(buildListPath, "utf8");
-assert(buildList.includes("border-[rgba(155,215,236,0.35)] bg-[rgba(155,215,236,0.08)]"), "Expected selected build background to use the provided light blue tint");
-assert(buildList.includes("bg-[#9BD7EC]"), "Expected selected build indicator bar to use the provided light blue");
-
 const settingsPath = path.join(process.cwd(), "components", "settings", "organization-settings-page.tsx");
 const settings = fs.readFileSync(settingsPath, "utf8");
 assert(settings.includes("border-[#2f476a] bg-[#2f476a]"), "Expected settings action buttons to use the provided slate blue");

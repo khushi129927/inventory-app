@@ -23,7 +23,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: string;
-  section: "Workspace" | "Build";
+  section: "Workspace";
 }
 
 interface SidebarContentProps {
@@ -42,14 +42,12 @@ const allNavItems: NavItem[] = [
   { label: "Orders", href: "/orders", icon: "ClipboardList", section: "Workspace" },
   { label: "Categories", href: "/categories", icon: "Tags", section: "Workspace" },
   { label: "Users", href: "/users", icon: "Users", section: "Workspace" },
-  { label: "PC Builder", href: "/builder", icon: "Cpu", section: "Build" },
-  { label: "Build History", href: "/builder/history", icon: "History", section: "Build" },
 ];
 
 const roleNavAccess: Record<UserRole, string[]> = {
-  admin: ["/", "/products", "/movements", "/categories", "/users", "/orders", "/builder", "/builder/history"],
-  manager: ["/", "/products", "/movements", "/orders", "/builder", "/builder/history"],
-  executive: ["/", "/products", "/builder", "/builder/history"],
+  admin: ["/", "/products", "/movements", "/categories", "/users", "/orders"],
+  manager: ["/", "/products", "/movements", "/orders"],
+  executive: ["/", "/products"],
 };
 
 function getNavItemsForRole(role: UserRole): NavItem[] {
@@ -87,10 +85,6 @@ function getCurrentPageLabel(pathname: string, navItems: NavItem[]): string {
 
   if (pathname === "/settings") {
     return "Settings";
-  }
-
-  if (pathname === "/builder") {
-    return "PC Builder";
   }
 
   return "Dashboard";
@@ -187,10 +181,6 @@ function SidebarContent({
     () => navItems.filter((item) => item.section === "Workspace"),
     [navItems]
   );
-  const buildItems = React.useMemo(
-    () => navItems.filter((item) => item.section === "Build"),
-    [navItems]
-  );
   const canShareCatalog = userRole === "admin" || userRole === "manager";
   const canSeeSettings = userRole === "admin";
   const isSettingsActive = pathname === "/settings" || pathname.startsWith("/settings/");
@@ -220,7 +210,6 @@ function SidebarContent({
 
       <div className="flex flex-1 flex-col gap-6 pt-6">
         <SidebarSection title="Workspace" items={workspaceItems} activeHref={activeHref} onNavigate={onNavigate} />
-        <SidebarSection title="Build" items={buildItems} activeHref={activeHref} onNavigate={onNavigate} />
       </div>
 
       <div className="mt-auto space-y-3 px-6">
@@ -298,7 +287,7 @@ function SidebarContent({
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isPublic = pathname === "/offerings" || pathname === "/builder";
+  const isPublic = pathname === "/offerings";
 
   // Use a safe check to prevent the app from crashing if the store is temporarily undefined
   const currentUser = typeof useAuthStore !== 'undefined' ? useAuthStore((state) => state.currentUser) : null;
@@ -322,12 +311,12 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               <div>
                 <p className="text-[18px] font-bold tracking-tight text-foreground">StockForge</p>
                 <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                  Public builder access
+                  Public catalog access
                 </p>
               </div>
             </div>
             <p className="hidden font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground sm:block">
-              {pathname === "/builder" ? "PC Builder" : "Offerings"}
+              Offerings
             </p>
           </div>
         </header>

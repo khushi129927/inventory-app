@@ -36,8 +36,8 @@ export default function DangerZoneCard() {
         <div>
           <h3 className="text-base font-bold text-destructive">Reset Workspace Data</h3>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            Restore products, categories, movements, orders, and build history to their
-            original demo state. This cannot be undone.
+            Restore products, categories, movements, and orders to their original demo
+            state. This cannot be undone.
           </p>
         </div>
         <button
@@ -58,8 +58,7 @@ export default function DangerZoneCard() {
             <AlertDialogTitle>Reset Workspace Data</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently replace your current products, categories, movements,
-              orders, and saved builds with the original demo data. This action cannot be
-              undone.
+              and orders with the original demo data. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

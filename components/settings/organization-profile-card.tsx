@@ -22,8 +22,8 @@ export default function OrganizationProfileCard() {
   const [currency, setCurrency] = React.useState(organization.currency);
   const [warehouseLocation, setWarehouseLocation] = React.useState(organization.warehouseLocation);
   const currencyOptions = [
-    "USD - United States Dollar",
     "INR - Indian Rupee",
+    "USD - United States Dollar",
     "EUR - Euro",
     "GBP - British Pound",
     "AED - UAE Dirham",

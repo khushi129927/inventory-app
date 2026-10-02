@@ -25,6 +25,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Icon from "@/components/Icon";
 import { apiBulkImportProducts } from "@/lib/api";
+import { formatCurrency } from "@/lib/utils";
 
 interface ExcelUploadDialogProps {
   open: boolean;
@@ -133,7 +134,7 @@ export default function ExcelUploadDialog({
       const successMsg = `Imported ${results.created} new product(s), updated ${results.updated} product(s).`;
       if (results.errors.length > 0) {
         toast.error(`${successMsg} ${results.errors.length} row(s) failed.`, {
-          description: results.errors.slice(0, 3).map(e => `Row ${e.row}: ${e.error}`).join(", ") + (results.errors.length > 3 ? "..." : ""),
+          description: results.errors.slice(0, 3).map((e: { row: number; error: string }) => `Row ${e.row}: ${e.error}`).join(", ") + (results.errors.length > 3 ? "..." : ""),
         });
       } else {
         toast.success(successMsg);
@@ -299,8 +300,8 @@ export default function ExcelUploadDialog({
                           {row.quantity ?? "—"}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {row.price !== undefined
-                            ? `$${row.price.toFixed(2)}`
+                          {row.mrp !== undefined
+                            ? formatCurrency(row.mrp, "INR - Indian Rupee", 2)
                             : "—"}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">

@@ -64,8 +64,8 @@ export default function OrganizationSettingsPage() {
     organization.ownershipTransferTargetUserId
   );
   const currencyOptions = [
-    "USD - United States Dollar",
     "INR - Indian Rupee",
+    "USD - United States Dollar",
     "EUR - Euro",
     "GBP - British Pound",
     "AED - UAE Dirham",
@@ -159,8 +159,8 @@ export default function OrganizationSettingsPage() {
                 </p>
               </div>
 
-              <div className="grid gap-8 xl:grid-cols-[1.4fr_1fr]">
-                <div className="flex flex-col gap-8 xl:col-start-2">
+              <div className="grid items-start gap-8 xl:grid-cols-2">
+                <div className="flex flex-col gap-8">
                   <section className="rounded-[2px] border border-border bg-card">
                     <div className="flex items-center justify-between gap-4 border-b border-border px-6 py-5">
                       <div className="text-base font-semibold tracking-[-0.01em] text-foreground">
@@ -224,7 +224,9 @@ export default function OrganizationSettingsPage() {
                       </div>
                     </div>
                   </section>
+                </div>
 
+                <div className="flex flex-col gap-8">
                   <section className="flex items-center justify-between gap-4 rounded-[2px] border border-[rgba(220,38,38,0.2)] bg-[rgba(220,38,38,0.08)] px-6 py-6 max-md:flex-col max-md:items-start">
                     <div>
                       <h3 className="mb-1 text-base font-bold tracking-[-0.01em] text-[#dc2626]">
@@ -262,7 +264,7 @@ export default function OrganizationSettingsPage() {
                         Reset Workspace Data
                       </h3>
                       <p className="max-w-md text-sm leading-[1.45] text-[#8a8a8a]">
-                        Restore products, categories, movements, orders, and build history to their original demo state. This cannot be undone.
+                        Restore products, categories, movements, and orders to their original demo state. This cannot be undone.
                       </p>
                     </div>
                     <Button

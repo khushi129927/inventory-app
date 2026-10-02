@@ -38,6 +38,7 @@ export interface Product {
   minStock: number;
   previousQuantity: number;
   monthsInInventory?: number;
+  monthlyInterest?: number;
   yesterdayQuantity?: number;
   hasYesterdaySnapshot?: boolean;
   yesterdaySnapshotDate?: string | null;
@@ -106,29 +107,6 @@ export interface OrderRequest {
   customerEmail: string;
   items: OrderRequestItem[];
   status: OrderRequestStatus;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type SavedBuildStatus = "completed" | "draft" | "archived";
-
-export interface SavedBuildItem {
-  category: string;
-  productId: string;
-  productName: string;
-  price: number;
-}
-
-export interface SavedBuild {
-  id: string;
-  name: string;
-  status: SavedBuildStatus;
-  items: SavedBuildItem[];
-  subtotal: number;
-  margin: ProductMargin;
-  marginAmount: number;
-  grandTotal: number;
-  createdBy?: string;
   createdAt: string;
   updatedAt: string;
 }
