@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import type { MovementType, Product } from "@/app/types/inventory";
-import { useProducts, useUpdateProduct } from "@/hooks/use-products";
+import type { MovementType } from "@/app/types/inventory";
+import { useProducts } from "@/hooks/use-products";
 import { useRecordMovement } from "@/hooks/use-movements";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,12 +45,7 @@ interface FormErrors {
   type?: string;
   productId?: string;
   quantity?: string;
-}
-
-function deriveStatus(quantity: number, minStock: number): Product["status"] {
-  if (quantity === 0) return "out-of-stock";
-  if (quantity <= minStock) return "low-stock";
-  return "in-stock";
+  location?: string;
 }
 
 function todayInputValue() {
@@ -70,7 +65,6 @@ const emptyForm: FormData = {
 
 export default function RecordMovementDialog({ open, onOpenChange }: RecordMovementDialogProps) {
   const { data: products = [] } = useProducts();
-  const { mutateAsync: updateProduct } = useUpdateProduct();
   const { mutateAsync: recordMovement, isPending: submitting } = useRecordMovement();
 
   const [form, setForm] = React.useState<FormData>(emptyForm);
@@ -111,16 +105,25 @@ export default function RecordMovementDialog({ open, onOpenChange }: RecordMovem
     }
 
     const qty = Number(form.quantity);
-    if (Number.isNaN(qty) || form.quantity.trim() === "" || !/^\d+(\.?\d+)?$/.test(form.quantity)) {
-      next.quantity = "Quantity must be a positive number";
+    if (Number.isNaN(qty) || form.quantity.trim() === "" || !/^\d+$/.test(form.quantity)) {
+      next.quantity =
+        form.type === "adjustment"
+          ? "Counted quantity must be 0 or greater"
+          : "Quantity must be 1 or greater";
+    } else if (form.type === "adjustment") {
+      if (qty < 0) {
+        next.quantity = "Counted quantity must be 0 or greater";
+      } else if (selectedProduct && qty === selectedProduct.quantity) {
+        next.quantity = "No change";
+      }
     } else if (qty <= 0) {
       next.quantity = "Quantity must be greater than 0";
-    } else if (
-      (form.type === "out" || form.type === "transfer") &&
-      selectedProduct &&
-      qty > selectedProduct.quantity
-    ) {
+    } else if (form.type === "out" && selectedProduct && qty > selectedProduct.quantity) {
       next.quantity = `Only ${selectedProduct.quantity} units available`;
+    }
+
+    if (form.type === "transfer" && form.location.trim() === "") {
+      next.location = "Location is required for transfers";
     }
 
     if (Object.keys(next).length > 0) return next;
@@ -138,50 +141,19 @@ export default function RecordMovementDialog({ open, onOpenChange }: RecordMovem
 
     const type = form.type as MovementType;
     const qty = Number(form.quantity);
-    const prevQty = selectedProduct.quantity;
-
-    let newQty: number;
-    let movementQty: number;
-
-    if (type === "in") {
-      newQty = prevQty + qty;
-      movementQty = qty;
-    } else if (type === "out" || type === "transfer") {
-      newQty = prevQty - qty;
-      movementQty = qty;
-    } else {
-      newQty = qty;
-      movementQty = newQty - prevQty;
-    }
-
-    const newStatus = deriveStatus(newQty, selectedProduct.minStock);
     const dateString = form.date ? new Date(form.date).toISOString() : new Date().toISOString();
 
     try {
-      await updateProduct({
-        id: selectedProduct.id,
-        data: {
-          quantity: newQty,
-          status: newStatus,
-        },
-      });
-
       await recordMovement({
         productId: selectedProduct.id,
-        productName: selectedProduct.name,
-        productSku: selectedProduct.sku,
         type,
-        quantity: movementQty,
-        previousQuantity: prevQty,
-        newQuantity: newQty,
+        quantity: qty,
         reason: form.notes.trim() || "No notes provided",
         location: form.location.trim() || undefined,
         reference: form.reference.trim() || undefined,
-        user: "Admin",
-        createdAt: dateString,
+        date: dateString,
       });
 
-      toast.success("Movement recorded successfully");
       onOpenChange(false);
     } catch (error: any) {
       toast.error(error.message || "Failed to record movement");
@@ -198,7 +170,7 @@ export default function RecordMovementDialog({ open, onOpenChange }: RecordMovem
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-x-hidden overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Record Stock Movement</DialogTitle>
           <DialogDescription>
@@ -206,11 +178,11 @@ export default function RecordMovementDialog({ open, onOpenChange }: RecordMovem
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-1.5">
+        <div className="grid min-w-0 gap-4 py-2">
+          <div className="grid min-w-0 gap-1.5">
             <Label htmlFor="movement-type">Movement Type</Label>
             <Select value={form.type || undefined} onValueChange={handleTypeChange}>
-              <SelectTrigger id="movement-type" className="w-full" aria-invalid={!!errors.type}>
+              <SelectTrigger id="movement-type" className="w-full max-w-full min-w-0" aria-invalid={!!errors.type}>
                 <SelectValue placeholder="Select type..." />
               </SelectTrigger>
               <SelectContent>
@@ -243,73 +215,82 @@ export default function RecordMovementDialog({ open, onOpenChange }: RecordMovem
             {errors.type && <p className="text-xs text-destructive">{errors.type}</p>}
           </div>
 
-          <div className="grid gap-1.5">
+          <div className="grid min-w-0 gap-1.5">
             <Label htmlFor="product">Product</Label>
             <Select value={form.productId || undefined} onValueChange={handleProductChange}>
-              <SelectTrigger id="product" className="w-full" aria-invalid={!!errors.productId}>
-                <SelectValue placeholder="Select product..." />
+              <SelectTrigger id="product" className="w-full max-w-full min-w-0" aria-invalid={!!errors.productId}>
+                <SelectValue placeholder="Select product..." className="min-w-0 truncate overflow-hidden text-ellipsis" />
               </SelectTrigger>
               <SelectContent>
                 {products.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>{p.name}</span>
-                      <span className="text-xs text-muted-foreground">({p.sku})</span>
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{p.name}</div>
+                      <div className="truncate text-xs text-muted-foreground">{p.sku}</div>
                     </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {errors.productId && <p className="text-xs text-destructive">{errors.productId}</p>}
-            {selectedProduct && (
+            {selectedProduct && form.type !== "adjustment" && (
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Icon name="Package" className="h-3.5 w-3.5" />
                 Current stock: <span className="font-medium text-foreground">{selectedProduct.quantity}</span> units
-                {form.type === "adjustment" && (
-                  <span className="text-muted-foreground/70">
-                    {" "}— enter the <span className="font-medium text-foreground">target</span> quantity
-                  </span>
-                )}
               </p>
             )}
           </div>
 
-          <div className="grid gap-1.5">
+          <div className="grid min-w-0 gap-1.5">
             <Label htmlFor="movement-quantity">
-              {form.type === "adjustment" ? "New Quantity" : "Quantity"}
+              {form.type === "adjustment" ? "Counted quantity (new stock level)" : "Quantity"}
             </Label>
-            <Input
-              id="movement-quantity"
-              type="number"
+              <Input
+                id="movement-quantity"
+                className="w-full max-w-full min-w-0"
+                type="number"
+
               min={form.type === "adjustment" ? 0 : 1}
               step={1}
               value={form.quantity}
               onChange={(e) => handleChange("quantity", e.target.value)}
-              placeholder={form.type === "adjustment" ? "Enter new quantity..." : "Enter amount..."}
+              placeholder={form.type === "adjustment" ? "Enter counted quantity..." : "Enter amount..."}
               aria-invalid={!!errors.quantity}
             />
             {errors.quantity && <p className="text-xs text-destructive">{errors.quantity}</p>}
-            {(form.type === "out" || form.type === "transfer") && selectedProduct && (
+            {form.type === "out" && selectedProduct && (
               <p className="text-xs text-muted-foreground">
                 Available: {selectedProduct.quantity} units
               </p>
             )}
+            {form.type === "adjustment" && selectedProduct && form.quantity.trim() !== "" && !Number.isNaN(Number(form.quantity)) && (
+              <p className="text-xs text-muted-foreground">
+                Current stock: {selectedProduct.quantity} -&gt; New stock: {Number(form.quantity)}
+              </p>
+            )}
+            {form.type === "transfer" && (
+              <p className="text-xs text-muted-foreground">
+                Transfer is logged only. Stock quantity does not change.
+              </p>
+            )}
           </div>
 
-          <div className="grid gap-1.5">
+          <div className="grid min-w-0 gap-1.5">
             <Label htmlFor="movement-date">Date</Label>
             <Input
               id="movement-date"
+              className="w-full max-w-full min-w-0"
               type="date"
               value={form.date}
               onChange={(e) => handleChange("date", e.target.value)}
             />
           </div>
 
-          <div className="grid gap-1.5">
+          <div className="grid min-w-0 gap-1.5">
             <Label htmlFor="movement-notes">Notes</Label>
             <Textarea
               id="movement-notes"
+              className="w-full max-w-full min-w-0"
               value={form.notes}
               onChange={(e) => handleChange("notes", e.target.value)}
               placeholder="Reason or additional details..."
@@ -317,21 +298,25 @@ export default function RecordMovementDialog({ open, onOpenChange }: RecordMovem
             />
           </div>
 
-          <div className="grid gap-1.5">
+          <div className="grid min-w-0 gap-1.5">
             <Label htmlFor="movement-location">Location</Label>
             <Input
               id="movement-location"
+              className="w-full max-w-full min-w-0"
               type="text"
               value={form.location}
               onChange={(e) => handleChange("location", e.target.value)}
-              placeholder="e.g. A-01 to B-03"
+              placeholder="e.g. Surat HQ -> Branch 2"
+              aria-invalid={!!errors.location}
             />
+            {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
           </div>
 
-          <div className="grid gap-1.5">
+          <div className="grid min-w-0 gap-1.5">
             <Label htmlFor="movement-reference">Reference</Label>
             <Input
               id="movement-reference"
+              className="w-full max-w-full min-w-0"
               type="text"
               value={form.reference}
               onChange={(e) => handleChange("reference", e.target.value)}

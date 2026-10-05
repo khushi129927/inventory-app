@@ -111,6 +111,110 @@ export interface OrderRequest {
   updatedAt: string;
 }
 
+export type OutstandingStatus = "overdue" | "due_soon" | "not_due";
+export type NotifyChannel = "sms" | "whatsapp" | "both" | "none";
+
+export interface SalesPerson {
+  id: string;
+  name: string;
+  phone: string | null;
+  notifyChannel: NotifyChannel;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OutstandingSummary {
+  totalOutstanding: number;
+  overdueAmount: number;
+  dueIn7Days: number;
+  clientsWithDues: number;
+}
+
+export interface OutstandingClientRow {
+  clientId: string;
+  clientName: string;
+  salesPerson: Pick<SalesPerson, "id" | "name" | "phone"> | null;
+  creditDays: number;
+  totalBalance: number;
+  overdueBalance: number;
+  nextDueDate: string | null;
+  oldestOverdueDays: number;
+  invoiceCount: number;
+}
+
+export interface OutstandingInvoiceDetail {
+  invoiceNo: string;
+  invoiceDate: string;
+  amount: number;
+  paidAmount: number;
+  balance: number;
+  creditDays: number;
+  dueDate: string;
+  daysOverdue: number;
+}
+
+export interface OutstandingClientDetail {
+  id: string;
+  name: string;
+  creditDays: number;
+  salesPerson: Pick<SalesPerson, "id" | "name" | "phone"> | null;
+  invoices: OutstandingInvoiceDetail[];
+}
+
+export interface OutstandingImportResult {
+  created: number;
+  updated: number;
+  errors: Array<{ row: number; message: string }>;
+}
+
+export type NotificationStatus = "queued" | "retrying" | "failed" | "sent" | "dry_run" | "skipped";
+
+export interface PublicOutstandingInvoice {
+  invoiceNo: string;
+  balance: number;
+  dueDate: string;
+  daysOverdue: number;
+}
+
+export interface PublicOutstandingClient {
+  clientName: string;
+  creditDays: number;
+  totalBalance: number;
+  overdueBalance: number;
+  invoices: PublicOutstandingInvoice[];
+}
+
+export interface PublicOutstandingPayload {
+  salesPersonFirstName: string;
+  asOf: string;
+  grandTotal: number;
+  clients: PublicOutstandingClient[];
+}
+
+export interface NotificationLogRow {
+  id: string;
+  createdAt: string;
+  scheduledFor: string;
+  salesPersonId: string;
+  salesPersonName: string;
+  phone: string | null;
+  channel: "sms" | "whatsapp";
+  kind: "due_today" | "manual_test";
+  status: NotificationStatus;
+  messageText: string;
+  errorMessage: string | null;
+  providerMessageId: string | null;
+}
+
+export interface NotificationLogList {
+  notifications: NotificationLogRow[];
+  page: number;
+  pageSize: number;
+  total: number;
+  provider: string | null;
+}
+
 export interface OrganizationProfile {
   name: string;
   currency: string;

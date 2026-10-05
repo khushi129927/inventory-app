@@ -10,7 +10,8 @@
     "dev": "node src/server.js",
     "start": "node src/server.js",
     "test": "node --test",
-    "snapshot:daily-stock": "node src/jobs/daily-product-stock-snapshot.js"
+    "snapshot:daily-stock": "node src/jobs/daily-product-stock-snapshot.js",
+    "notify:outstanding": "node src/jobs/outstanding-due-notifications.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

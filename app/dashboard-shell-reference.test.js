@@ -10,7 +10,7 @@ const dashboard = fs.readFileSync(dashboardPath, "utf8");
 
 assert(
   shell.includes('bg-[var(--sidebar)]') &&
-    shell.includes('px-6 pt-6 pb-4') &&
+    shell.includes('px-6 pt-4 pb-4') &&
     shell.includes('Inventory Command Center') &&
     shell.includes('font-mono text-[10px] font-medium uppercase tracking-[0.12em]') &&
     shell.includes('px-6 py-2.5') &&
@@ -22,7 +22,6 @@ assert(
 
 assert(
   shell.includes('h-14 border-b border-border bg-card px-8') &&
-    shell.includes('font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground') &&
     shell.includes('font-mono text-[12px] font-medium uppercase tracking-[0.08em] text-muted-foreground') &&
     shell.includes('rounded-full bg-[var(--sidebar)]') &&
     shell.includes('hover:bg-[rgba(255,255,255,0.05)]') &&

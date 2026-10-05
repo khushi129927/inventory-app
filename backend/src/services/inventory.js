@@ -95,6 +95,69 @@ function normalizeProductUpdateData(data) {
   return normalized;
 }
 
+function deriveInventoryStatus(quantity, minStock) {
+  if (quantity === 0) return "out_of_stock";
+  if (quantity <= minStock) return "low_stock";
+  return "in_stock";
+}
+
+function buildStockMovementData({
+  product,
+  type,
+  quantity,
+  previousQuantity,
+  newQuantity,
+  reason,
+  location,
+  reference,
+  user,
+  createdAt,
+}) {
+  return {
+    productId: product.id,
+    productName: product.name,
+    productSku: product.sku,
+    type,
+    quantity,
+    previousQuantity,
+    newQuantity,
+    reason,
+    location,
+    reference,
+    user,
+    ...(createdAt ? { createdAt } : {}),
+  };
+}
+
+function getActivityDetails(type, quantity, productName, previousQuantity, newQuantity) {
+  switch (type) {
+    case "in":
+      return {
+        type: "stock_in",
+        message: `Received ${quantity} units of ${productName}`,
+      };
+    case "out":
+      return {
+        type: "stock_out",
+        message: `Shipped ${quantity} units of ${productName}`,
+      };
+    case "transfer":
+      return {
+        type: "stock_transferred",
+        message: `Transferred ${quantity} units of ${productName}`,
+      };
+    case "adjustment":
+    default: {
+      const delta = newQuantity - previousQuantity;
+      const direction = delta > 0 ? `+${delta}` : `${delta}`;
+      return {
+        type: "stock_adjusted",
+        message: `Adjusted ${productName} stock from ${previousQuantity} to ${newQuantity} (${direction})`,
+      };
+    }
+  }
+}
+
 export function createInventoryService(prisma, options = {}) {
   const now = options.now ?? (() => new Date());
 
@@ -387,31 +450,67 @@ export function createInventoryService(prisma, options = {}) {
       });
 
       try {
-        const product = await prisma.product.update({
-          where: { id },
-          data: normalized,
+        const product = await prisma.$transaction(async (tx) => {
+          const existingProduct = await tx.product.findUnique({
+            where: { id },
+          });
+
+          if (!existingProduct) {
+            throw new Error("Product not found");
+          }
+
+          const previousQuantity = existingProduct.quantity;
+          const shouldTrackQuantityChange =
+            typeof normalized.quantity === "number" &&
+            typeof previousQuantity === "number" &&
+            normalized.quantity !== previousQuantity;
+
+          const updateData = { ...normalized };
+          if (shouldTrackQuantityChange) {
+            updateData.previousQuantity = previousQuantity;
+            updateData.status = deriveInventoryStatus(normalized.quantity, existingProduct.minStock);
+          }
+
+          const updatedProduct = await tx.product.update({
+            where: { id },
+            data: updateData,
+          });
+
+          if (shouldTrackQuantityChange) {
+            await tx.stockMovement.create({
+              data: buildStockMovementData({
+                product: existingProduct,
+                type: "adjustment",
+                quantity: normalized.quantity - previousQuantity,
+                previousQuantity,
+                newQuantity: normalized.quantity,
+                reason: "Edited on Stock page",
+              }),
+            });
+          }
+
+          if (tx.productStockSnapshot?.upsert && typeof normalized.quantity === "number") {
+            const snapshotDate = startOfUtcDay(now());
+            await tx.productStockSnapshot.upsert({
+              where: {
+                productId_snapshotDate: {
+                  productId: id,
+                  snapshotDate,
+                },
+              },
+              update: { quantity: normalized.quantity },
+              create: {
+                productId: id,
+                snapshotDate,
+                quantity: normalized.quantity,
+              },
+            });
+          }
+
+          return updatedProduct;
         });
 
         console.log(`[${new Date().toISOString()}] inventory.updateProduct prisma result`, product);
-
-        if (prisma.productStockSnapshot?.upsert && typeof normalized.quantity === "number") {
-          const snapshotDate = startOfUtcDay(new Date());
-          await prisma.productStockSnapshot.upsert({
-            where: {
-              productId_snapshotDate: {
-                productId: id,
-                snapshotDate,
-              },
-            },
-            update: { quantity: normalized.quantity },
-            create: {
-              productId: id,
-              snapshotDate,
-              quantity: normalized.quantity,
-            },
-          });
-        }
-
         return product;
       } catch (error) {
         console.error(`[${new Date().toISOString()}] inventory.updateProduct failed`, error);
@@ -425,72 +524,91 @@ export function createInventoryService(prisma, options = {}) {
       });
     },
 
-    async recordMovement({ productId, type, quantity, reason, location, reference, userId }) {
+    async listMovements(filters = {}) {
+      const normalizedType =
+        typeof filters.type === "string" && filters.type !== "" && filters.type !== "null"
+          ? filters.type
+          : undefined;
+      const parsedLimit = Number(filters.limit);
+      const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 500) : 500;
+
+      if (!prisma?.stockMovement?.findMany) {
+        const result = await prisma.query('select * from "StockMovement" order by "createdAt" desc limit $1', [limit]);
+        return normalizedType ? result.rows.filter((movement) => movement.type === normalizedType) : result.rows;
+      }
+
+      return prisma.stockMovement.findMany({
+        where: normalizedType ? { type: normalizedType } : undefined,
+        orderBy: { createdAt: "desc" },
+        take: limit,
+      });
+    },
+
+    async recordMovement({ productId, type, quantity, reason, location, reference, userId, createdAt }) {
       return prisma.$transaction(async (tx) => {
-        // 1. Lock product row to prevent race conditions
         const product = await tx.$queryRaw`SELECT * FROM "Product" WHERE id = ${productId} FOR UPDATE`;
         if (!product || product.length === 0) throw new Error("Product not found");
         const p = product[0];
 
         const previousQuantity = p.quantity;
         let newQuantity = previousQuantity;
+        let movementQuantity = quantity;
 
-        if (type === 'in') {
-          newQuantity += quantity;
-        } else if (type === 'out') {
-          newQuantity -= quantity;
-        } else if (type === 'adjustment') {
-          newQuantity += quantity; // quantity can be negative
-        } else if (type === 'transfer') {
-          // Transfers are usually handled as out from one and in to another,
-          // but the frontend treats it as a record.
-          // We'll keep quantity unchanged for pure transfers unless specified.
+        if (type === "in") {
+          newQuantity = previousQuantity + quantity;
+        } else if (type === "out") {
+          newQuantity = previousQuantity - quantity;
+          if (newQuantity < 0) {
+            throw new Error("Insufficient stock");
+          }
+        } else if (type === "adjustment") {
+          newQuantity = quantity;
+          movementQuantity = newQuantity - previousQuantity;
+          if (movementQuantity === 0) {
+            throw new Error("No change");
+          }
+        } else if (type === "transfer") {
+          newQuantity = previousQuantity;
         }
 
-        if (newQuantity < 0) {
-          throw new Error("Insufficient stock: movement would result in negative quantity");
+        const movementCreatedAt = createdAt instanceof Date && !Number.isNaN(createdAt.getTime()) ? createdAt : now();
+
+        if (type !== "transfer") {
+          const status = deriveInventoryStatus(newQuantity, p.minStock);
+          await tx.product.update({
+            where: { id: productId },
+            data: {
+              quantity: newQuantity,
+              previousQuantity,
+              status,
+              updatedAt: new Date(),
+            },
+          });
         }
 
-        // Determine status based on minStock
-        let status = 'in_stock';
-        if (newQuantity === 0) status = 'out_of_stock';
-        else if (newQuantity <= p.minStock) status = 'low_stock';
-
-        // 2. Update Product
-        await tx.product.update({
-          where: { id: productId },
-          data: {
-            quantity: newQuantity,
-            previousQuantity,
-            status,
-            updatedAt: new Date(),
-          },
-        });
-
-        // 3. Create Movement Record
         const movement = await tx.stockMovement.create({
-          data: {
-            productId,
-            productName: p.name,
-            productSku: p.sku,
+          data: buildStockMovementData({
+            product: p,
             type,
-            quantity,
+            quantity: movementQuantity,
             previousQuantity,
             newQuantity,
             reason,
             location,
             reference,
             user: userId,
-          },
+            createdAt: movementCreatedAt,
+          }),
         });
 
-        // 4. Create Activity Log
+        const activity = getActivityDetails(type, quantity, p.name, previousQuantity, newQuantity);
         await tx.activityItem.create({
           data: {
-            type: type === 'in' ? 'stock_in' : type === 'out' ? 'stock_out' : 'stock_adjusted',
-            message: `${type === 'in' ? 'Received' : type === 'out' ? 'Shipped' : 'Adjusted'} ${quantity} units of ${p.name}`,
+            type: activity.type,
+            message: activity.message,
             productId,
             productName: p.name,
+            createdAt: movementCreatedAt,
           },
         });
 

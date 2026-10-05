@@ -2,6 +2,34 @@ function startOfUtcDay(value) {
   return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
 }
 
+function buildStockMovementData({
+  product,
+  type,
+  quantity,
+  previousQuantity,
+  newQuantity,
+  reason,
+  location,
+  reference,
+  user,
+  createdAt,
+}) {
+  return {
+    productId: product.id,
+    productName: product.name,
+    productSku: product.sku,
+    type,
+    quantity,
+    previousQuantity,
+    newQuantity,
+    reason,
+    location,
+    reference,
+    user,
+    ...(createdAt ? { createdAt } : {}),
+  };
+}
+
 async function bulkImportProducts(client, rows, options = {}) {
   const results = { created: 0, updated: 0, errors: [] };
   const now = options.now?.() ?? new Date();
@@ -67,6 +95,44 @@ async function bulkImportProducts(client, rows, options = {}) {
         },
       });
 
+      if (client.stockMovement?.create) {
+        if (existingProduct && existingProduct.quantity !== row.quantity) {
+          await client.stockMovement.create({
+            data: buildStockMovementData({
+              product: {
+                id: product.id,
+                name: row.name,
+                sku: row.sku,
+              },
+              type: "adjustment",
+              quantity: row.quantity - existingProduct.quantity,
+              previousQuantity: existingProduct.quantity,
+              newQuantity: row.quantity,
+              reason: "Excel upload",
+              createdAt: now,
+            }),
+          });
+        }
+
+        if (!existingProduct && row.quantity > 0) {
+          await client.stockMovement.create({
+            data: buildStockMovementData({
+              product: {
+                id: product.id,
+                name: row.name,
+                sku: row.sku,
+              },
+              type: "in",
+              quantity: row.quantity,
+              previousQuantity: 0,
+              newQuantity: row.quantity,
+              reason: "Initial stock (Excel upload)",
+              createdAt: now,
+            }),
+          });
+        }
+      }
+
       if (client.productStockSnapshot?.upsert) {
         await client.productStockSnapshot.upsert({
           where: {
@@ -104,4 +170,4 @@ async function bulkImportProducts(client, rows, options = {}) {
   return results;
 }
 
-export { bulkImportProducts, startOfUtcDay };
+export { bulkImportProducts, buildStockMovementData, startOfUtcDay };

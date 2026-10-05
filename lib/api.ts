@@ -1,4 +1,18 @@
-import type { Category, OrderRequest, OrderRequestItem, Product, User } from "@/app/types/inventory";
+import type {
+  Category,
+  NotificationLogList,
+  NotificationStatus,
+  OrderRequest,
+  OrderRequestItem,
+  OutstandingClientDetail,
+  OutstandingClientRow,
+  OutstandingImportResult,
+  OutstandingSummary,
+  Product,
+  PublicOutstandingPayload,
+  SalesPerson,
+  User,
+} from "@/app/types/inventory";
 
 export interface LoginResponse {
   token: string;
@@ -50,9 +64,11 @@ export async function apiRequest<T>(
     method?: string;
     body?: unknown;
     headers?: HeadersInit;
+    credentials?: RequestCredentials;
+    skipCsrf?: boolean;
   } = {}
 ): Promise<T> {
-  const { method = "GET", body, headers } = options;
+  const { method = "GET", body, headers, credentials = "include", skipCsrf = false } = options;
   const normalizedMethod = method.toUpperCase();
   const requestHeaders = new Headers(headers);
 
@@ -60,7 +76,7 @@ export async function apiRequest<T>(
     requestHeaders.set("content-type", "application/json");
   }
 
-  if (MUTATING_METHODS.has(normalizedMethod) && !requestHeaders.has("x-csrf-token")) {
+  if (!skipCsrf && MUTATING_METHODS.has(normalizedMethod) && !requestHeaders.has("x-csrf-token")) {
     const csrfToken = await ensureCsrfToken();
     if (csrfToken) {
       requestHeaders.set("x-csrf-token", csrfToken);
@@ -69,7 +85,7 @@ export async function apiRequest<T>(
 
   const response = await fetch(`${DEFAULT_API_BASE_URL}${path}`, {
     method: normalizedMethod,
-    credentials: "include",
+    credentials,
     headers: requestHeaders,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
@@ -167,5 +183,97 @@ export async function apiUpdateOrder(id: string, status: "approved" | "rejected"
   return apiRequest<OrderRequest>(`/order-requests/${id}`, {
     method: "PATCH",
     body: { status }
+  });
+}
+
+export async function apiGetOutstandingSummary(): Promise<OutstandingSummary> {
+  return apiRequest<OutstandingSummary>("/outstanding/summary");
+}
+
+export async function apiGetOutstandingClients(filters?: {
+  salesPersonId?: string | null;
+  search?: string | null;
+  status?: "overdue" | "due_soon" | "not_due" | null;
+}): Promise<{ clients: OutstandingClientRow[] }> {
+  const normalizedFilters = filters
+    ? new URLSearchParams(
+        Object.entries(filters).flatMap(([key, value]) =>
+          value === null || value === undefined || value === "" ? [] : [[key, value]]
+        )
+      )
+    : undefined;
+  const query = normalizedFilters && normalizedFilters.size > 0 ? `?${normalizedFilters.toString()}` : "";
+  return apiRequest<{ clients: OutstandingClientRow[] }>(`/outstanding/clients${query}`);
+}
+
+export async function apiGetOutstandingClient(id: string): Promise<{ client: OutstandingClientDetail }> {
+  return apiRequest<{ client: OutstandingClientDetail }>(`/outstanding/clients/${id}`);
+}
+
+export async function apiImportOutstanding(rows: Record<string, unknown>[]): Promise<OutstandingImportResult> {
+  return apiRequest<OutstandingImportResult>("/outstanding/import", {
+    method: "POST",
+    body: { rows },
+  });
+}
+
+export async function apiUpdateOutstandingClient(
+  id: string,
+  data: { creditDays?: number; salesPersonId?: string | null; applyToOpenInvoices?: boolean }
+): Promise<{ client: OutstandingClientDetail }> {
+  return apiRequest<{ client: OutstandingClientDetail }>(`/clients/${id}`, {
+    method: "PATCH",
+    body: data,
+  });
+}
+
+export async function apiGetSalesPeople(): Promise<{ salesPeople: SalesPerson[] }> {
+  return apiRequest<{ salesPeople: SalesPerson[] }>("/salespeople");
+}
+
+export async function apiUpdateSalesPerson(
+  id: string,
+  data: { phone?: string | null; notifyChannel?: "sms" | "whatsapp" | "both" | "none"; active?: boolean }
+): Promise<{ salesPerson: SalesPerson }> {
+  return apiRequest<{ salesPerson: SalesPerson }>(`/salespeople/${id}`, {
+    method: "PATCH",
+    body: data,
+  });
+}
+
+export async function apiGetOutstandingNotifications(filters?: {
+  salesPersonId?: string | null;
+  status?: NotificationStatus | null;
+  page?: number;
+  pageSize?: number;
+}): Promise<NotificationLogList> {
+  const normalizedFilters = filters
+    ? new URLSearchParams(
+        Object.entries(filters).flatMap(([key, value]) =>
+          value === null || value === undefined || value === "" ? [] : [[key, String(value)]]
+        )
+      )
+    : undefined;
+  const query = normalizedFilters && normalizedFilters.size > 0 ? `?${normalizedFilters.toString()}` : "";
+  return apiRequest<NotificationLogList>(`/outstanding/notifications${query}`);
+}
+
+export async function apiSendOutstandingTestMessage(salesPersonId: string): Promise<{ sent: number }> {
+  return apiRequest<{ sent: number }>("/outstanding/notify/test", {
+    method: "POST",
+    body: { salesPersonId },
+  });
+}
+
+export async function apiRevokeOutstandingLinks(salesPersonId: string): Promise<{ revoked: number }> {
+  return apiRequest<{ revoked: number }>(`/outstanding/salespeople/${salesPersonId}/revoke-links`, {
+    method: "POST",
+  });
+}
+
+export async function apiGetPublicOutstanding(token: string): Promise<PublicOutstandingPayload> {
+  return apiRequest<PublicOutstandingPayload>(`/public/outstanding/${encodeURIComponent(token)}`, {
+    credentials: "omit",
+    skipCsrf: true,
   });
 }

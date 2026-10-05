@@ -63,13 +63,11 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="page-content px-8 py-8">
+    <div className="page-content px-8 py-8 pt-4">
       <div className="page-header-row flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="page-title text-[32px] font-bold tracking-[-0.03em] text-foreground">Dashboard</h1>
-          <p className="page-subtitle mt-2 max-w-[600px] text-sm text-muted-foreground">
-            Overview of your inventory at a glance.
-          </p>
+        <div className="page-header">
+          <h1>Dashboard</h1>
+          <p>Overview of your inventory at a glance.</p>
         </div>
         <div className="flex items-center gap-3 self-start">
           <Button

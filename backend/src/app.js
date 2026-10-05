@@ -52,14 +52,41 @@ const productSchema = z.object({
   image: z.string().trim().url().optional().or(z.literal("")),
 });
 
-const movementSchema = z.object({
-  productId: z.string().trim().min(1).max(100),
-  type: z.enum(["in", "out", "adjustment", "transfer"]),
-  quantity: z.number().int().min(1).max(1_000_000),
-  reason: sanitizedText(200),
-  location: optionalSanitizedText(200),
-  reference: optionalSanitizedText(200),
-});
+const movementSchema = z
+  .object({
+    productId: z.string().trim().min(1).max(100),
+    type: z.enum(["in", "out", "adjustment", "transfer"]),
+    quantity: z.number().int().max(1_000_000),
+    reason: sanitizedText(200),
+    location: optionalSanitizedText(200),
+    reference: optionalSanitizedText(200),
+    date: z.string().datetime().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.type === "adjustment") {
+      if (value.quantity < 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["quantity"],
+          message: "Adjustment quantity must be 0 or greater",
+        });
+      }
+    } else if (value.quantity < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["quantity"],
+        message: "Quantity must be 1 or greater",
+      });
+    }
+
+    if (value.type === "transfer" && !value.location) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["location"],
+        message: "Location is required for transfers",
+      });
+    }
+  });
 
 const orderRequestSchema = z.object({
   customerName: sanitizedText(200),
@@ -95,6 +122,62 @@ const userUpdateSchema = z
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one field is required",
   });
+
+const outstandingImportSchema = z.object({
+  rows: z.array(
+    z.object({
+      "Client Name": z.string().trim().min(1).max(200),
+      Salesperson: z.string().trim().min(1).max(200),
+      "Salesperson Phone": z.string().trim().max(30).optional().or(z.literal("")),
+      "Invoice No": z.string().trim().min(1).max(100),
+      "Invoice Date": z.union([z.string().trim().min(1), z.date()]),
+      Amount: z.number().min(0).max(1_000_000_000),
+      "Paid Amount": z.number().min(0).max(1_000_000_000).optional(),
+      "Credit Days": z.number().int().min(0).max(3650).optional(),
+    })
+  ).max(5000),
+});
+
+const outstandingClientsQuerySchema = z.object({
+  salesPersonId: z.string().trim().min(1).max(100).optional(),
+  search: z.string().trim().min(1).max(200).optional(),
+  status: z.enum(["overdue", "due_soon", "not_due"]).optional(),
+});
+
+const clientUpdateSchema = z
+  .object({
+    creditDays: z.number().int().min(0).max(3650).optional(),
+    salesPersonId: z.string().trim().min(1).max(100).nullable().optional(),
+    applyToOpenInvoices: z.boolean().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field is required",
+  });
+
+const salesPersonUpdateSchema = z
+  .object({
+    phone: z.string().trim().max(30).nullable().optional().or(z.literal("")),
+    notifyChannel: z.enum(["sms", "whatsapp", "both", "none"]).optional(),
+    active: z.boolean().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field is required",
+  });
+
+const publicOutstandingTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/, {
+  message: "Invalid outstanding token",
+});
+
+const outstandingNotifyTestSchema = z.object({
+  salesPersonId: z.string().trim().min(1).max(100),
+});
+
+const outstandingNotificationsQuerySchema = z.object({
+  salesPersonId: z.string().trim().min(1).max(100).optional(),
+  status: z.string().trim().min(1).max(100).optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+});
 
 function getSecurityConfig(overrides = {}) {
   const allowedOrigins = overrides.allowedOrigins ?? process.env.CORS_ORIGIN?.split(",").map((value) => value.trim()).filter(Boolean) ?? [];
@@ -209,7 +292,7 @@ function withSession(auth, handler) {
 }
 
 export function createApp(dependencies) {
-  const { health, auth, inventory, security: securityOverrides } = dependencies;
+  const { health, auth, inventory, outstanding, outstandingLinks, outstandingNotifier, security: securityOverrides } = dependencies;
   const security = getSecurityConfig(securityOverrides);
   const app = express();
 
@@ -254,12 +337,42 @@ export function createApp(dependencies) {
     message: { message: "Too many login attempts, please try again later" },
   });
 
+  const publicOutstandingLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "This link is not valid or has expired" },
+    statusCode: 404,
+  });
+
   app.get("/health", async (_req, res) => {
     try {
       const result = await health();
       res.status(200).json(result);
     } catch {
       res.status(500).json({ message: "Health check failed" });
+    }
+  });
+
+  app.get("/public/outstanding/:token", publicOutstandingLimiter, async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    res.set("X-Robots-Tag", "noindex");
+
+    try {
+      const token = publicOutstandingTokenSchema.parse(req.params.token);
+      const view = await outstandingLinks.getPublicView(token);
+      if (!view) {
+        res.status(404).json({ error: "This link is not valid or has expired" });
+        return;
+      }
+      res.status(200).json(view);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(404).json({ error: "This link is not valid or has expired" });
+        return;
+      }
+      sanitizeServerError(res, error, "GET /public/outstanding/:token failed");
     }
   });
 
@@ -481,6 +594,187 @@ export function createApp(dependencies) {
     }
   );
 
+  app.get(
+    "/outstanding/summary",
+    ...withSession(auth, (_req, _res, next) => {
+      next();
+    }),
+    roleGuard("admin", "manager"),
+    async (_req, res) => {
+      try {
+        const summary = await outstanding.summary();
+        res.status(200).json(summary);
+      } catch (error) {
+        sanitizeServerError(res, error, "GET /outstanding/summary failed");
+      }
+    }
+  );
+
+  app.get(
+    "/outstanding/clients",
+    ...withSession(auth, (_req, _res, next) => {
+      next();
+    }),
+    roleGuard("admin", "manager"),
+    async (req, res) => {
+      try {
+        const filters = outstandingClientsQuerySchema.parse(req.query);
+        const clients = await outstanding.listClients(filters);
+        res.status(200).json({ clients });
+      } catch (error) {
+        sanitizeServerError(res, error, "GET /outstanding/clients failed");
+      }
+    }
+  );
+
+  app.get(
+    "/outstanding/clients/:id",
+    ...withSession(auth, (_req, _res, next) => {
+      next();
+    }),
+    roleGuard("admin", "manager"),
+    async (req, res) => {
+      try {
+        const client = await outstanding.getClient(req.params.id);
+        if (!client) {
+          res.status(404).json({ message: "Client not found" });
+          return;
+        }
+        res.status(200).json({ client });
+      } catch (error) {
+        sanitizeServerError(res, error, "GET /outstanding/clients/:id failed");
+      }
+    }
+  );
+
+  app.post(
+    "/outstanding/import",
+    ...withSession(auth, (_req, _res, next) => {
+      next();
+    }),
+    roleGuard("admin", "manager"),
+    csrfProtection,
+    async (req, res) => {
+      try {
+        const input = outstandingImportSchema.parse(req.body);
+        const result = await outstanding.importRows(input.rows);
+        res.status(200).json(result);
+      } catch (error) {
+        sanitizeServerError(res, error, "POST /outstanding/import failed");
+      }
+    }
+  );
+
+  app.patch(
+    "/clients/:id",
+    ...withSession(auth, (_req, _res, next) => {
+      next();
+    }),
+    roleGuard("admin", "manager"),
+    csrfProtection,
+    async (req, res) => {
+      try {
+        const data = clientUpdateSchema.parse(req.body);
+        const client = await outstanding.updateClient(req.params.id, data);
+        res.status(200).json({ client });
+      } catch (error) {
+        sanitizeServerError(res, error, "PATCH /clients/:id failed");
+      }
+    }
+  );
+
+  app.get(
+    "/salespeople",
+    ...withSession(auth, (_req, _res, next) => {
+      next();
+    }),
+    roleGuard("admin", "manager"),
+    async (_req, res) => {
+      try {
+        const salesPeople = await outstanding.listSalesPeople();
+        res.status(200).json({ salesPeople });
+      } catch (error) {
+        sanitizeServerError(res, error, "GET /salespeople failed");
+      }
+    }
+  );
+
+  app.patch(
+    "/salespeople/:id",
+    ...withSession(auth, (_req, _res, next) => {
+      next();
+    }),
+    roleGuard("admin", "manager"),
+    csrfProtection,
+    async (req, res) => {
+      try {
+        const data = salesPersonUpdateSchema.parse(req.body);
+        const salesPerson = await outstanding.updateSalesPerson(req.params.id, data);
+        res.status(200).json({ salesPerson });
+      } catch (error) {
+        sanitizeServerError(res, error, "PATCH /salespeople/:id failed");
+      }
+    }
+  );
+
+  app.post(
+    "/outstanding/salespeople/:id/revoke-links",
+    ...withSession(auth, (_req, _res, next) => {
+      next();
+    }),
+    roleGuard("admin"),
+    csrfProtection,
+    async (req, res) => {
+      try {
+        const result = await outstandingLinks.revokeLinks(req.params.id);
+        res.status(200).json(result);
+      } catch (error) {
+        sanitizeServerError(res, error, "POST /outstanding/salespeople/:id/revoke-links failed");
+      }
+    }
+  );
+
+  app.post(
+    "/outstanding/notify/test",
+    ...withSession(auth, (_req, _res, next) => {
+      next();
+    }),
+    roleGuard("admin"),
+    csrfProtection,
+    async (req, res) => {
+      try {
+        const input = outstandingNotifyTestSchema.parse(req.body);
+        const result = await outstandingNotifier.sendTest(input.salesPersonId);
+        res.status(200).json(result);
+      } catch (error) {
+        sanitizeServerError(res, error, "POST /outstanding/notify/test failed");
+      }
+    }
+  );
+
+  app.get(
+    "/outstanding/notifications",
+    ...withSession(auth, (_req, _res, next) => {
+      next();
+    }),
+    roleGuard("admin", "manager"),
+    async (req, res) => {
+      try {
+        const input = outstandingNotificationsQuerySchema.parse(req.query);
+        const result = await outstandingNotifier.listNotifications({
+          salesPersonId: input.salesPersonId,
+          status: input.status,
+          page: input.page,
+          pageSize: input.pageSize,
+          includePhone: req.user?.role === "admin",
+        });
+        res.status(200).json(result);
+      } catch (error) {
+        sanitizeServerError(res, error, "GET /outstanding/notifications failed");
+      }
+    }
+  );
+
   app.post(
     "/products/import",
     ...withSession(auth, (req, res, next) => {
@@ -568,6 +862,25 @@ export function createApp(dependencies) {
     }
   );
 
+  app.get(
+    "/movements",
+    ...withSession(auth, (_req, _res, next) => {
+      next();
+    }),
+    roleGuard("admin", "manager"),
+    async (req, res) => {
+      try {
+        const movements = await inventory.listMovements({
+          type: req.query.type,
+          limit: req.query.limit,
+        });
+        res.status(200).json({ movements });
+      } catch (error) {
+        sanitizeServerError(res, error, "GET /movements failed");
+      }
+    }
+  );
+
   app.post(
     "/movements",
     ...withSession(auth, (req, res, next) => {
@@ -578,8 +891,15 @@ export function createApp(dependencies) {
     async (req, res) => {
       try {
         const data = movementSchema.parse(req.body);
+        const parsedDate = data.date ? new Date(data.date) : undefined;
         const movement = await inventory.recordMovement({
-          ...data,
+          productId: data.productId,
+          type: data.type,
+          quantity: data.quantity,
+          reason: data.reason,
+          location: data.location,
+          reference: data.reference,
+          createdAt: parsedDate instanceof Date && !Number.isNaN(parsedDate.getTime()) ? parsedDate : undefined,
           userId: req.user.name,
         });
         res.status(201).json(movement);

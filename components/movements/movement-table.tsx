@@ -52,9 +52,12 @@ function getQuantityText(movement: StockMovement) {
     return `+${movement.quantity}`;
   }
 
+  if (movement.type === "out") {
+    return `-${movement.quantity}`;
+  }
+
   if (movement.type === "adjustment") {
-    const diff = movement.newQuantity - movement.previousQuantity;
-    return `${diff > 0 ? "+" : ""}${diff}`;
+    return `${movement.quantity > 0 ? "+" : ""}${movement.quantity}`;
   }
 
   return `${movement.quantity}`;
@@ -94,29 +97,36 @@ export default function MovementTable({ movements }: MovementTableProps) {
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="border-b border-border">
-            <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
-              Timestamp
-            </TableHead>
-            <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
-              SKU / Product
-            </TableHead>
-            <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
-              Type
-            </TableHead>
-            <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
-              Qty
-            </TableHead>
-            <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
-              Location
-            </TableHead>
-            <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
-              Reference
-            </TableHead>
-            <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
-              Operator
-            </TableHead>
-          </TableRow>
+            <TableRow className="border-b border-border">
+              <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                Date
+              </TableHead>
+              <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                SKU / Product
+              </TableHead>
+              <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                Type
+              </TableHead>
+              <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                Change
+              </TableHead>
+              <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                Stock
+              </TableHead>
+              <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                Reason
+              </TableHead>
+              <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                Location
+              </TableHead>
+              <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                Reference
+              </TableHead>
+              <TableHead className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                User
+              </TableHead>
+            </TableRow>
+
         </TableHeader>
         <TableBody>
           {movements.map((movement) => (
@@ -152,6 +162,19 @@ export default function MovementTable({ movements }: MovementTableProps) {
                 >
                   {getQuantityText(movement)}
                 </span>
+              </TableCell>
+              <TableCell className="px-4 py-4 text-muted-foreground">
+                <span
+                  className={[
+                    "font-mono text-sm font-semibold tabular-nums",
+                    getQuantityClasses(movement.type),
+                  ].join(" ")}
+                >
+                  {movement.previousQuantity} -&gt; {movement.newQuantity}
+                </span>
+              </TableCell>
+              <TableCell className="px-4 py-4 text-muted-foreground">
+                <span className="text-sm text-foreground">{movement.reason}</span>
               </TableCell>
               <TableCell className="px-4 py-4 text-muted-foreground">
                 <span className="text-sm text-muted-foreground">{movement.location ?? ""}</span>

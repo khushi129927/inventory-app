@@ -52,13 +52,11 @@ export default function CategoriesPage() {
 
   return (
     <div className="page-content">
-      <div className="flex flex-col gap-4 rounded-[2px] border border-border bg-card px-5 pt-6 pb-5 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-2">
-          <div className="page-header gap-2">
-            <h1>Categories</h1>
-            <p>Organize products with shared category groupings and jump directly into filtered stock.</p>
-          </div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="page-header">
+          <h1>Categories</h1>
+          <p>Organize products with shared category groupings and jump directly into filtered stock.</p>
+          <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
             Click any category card to open Stock with that category preselected.
           </p>
         </div>

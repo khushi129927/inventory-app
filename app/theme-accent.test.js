@@ -77,8 +77,6 @@ assert(shell.includes("bg-[#9BD7EC]"), "Expected notification badges to use the 
 assert(shell.includes("text-[rgba(232,236,242,0.55)]"), "Expected inactive sidebar items to use the Comfortable Dark inverse-muted text opacity");
 assert(shell.includes("hover:bg-[rgba(255,255,255,0.05)]"), "Expected inactive sidebar items to use the Comfortable Dark hover surface");
 assert(shell.includes("bg-[rgba(255,255,255,0.04)]"), "Expected sidebar utility cards to use the Comfortable Dark elevated translucent fill");
-assert(shell.includes("rounded-full bg-[#2A2E3F]"), "Expected sidebar user badge to use the Comfortable Dark mini-avatar background");
-assert(shell.includes("text-[#2DD4BF]"), "Expected sidebar user badge text to use the Comfortable Dark teal accent");
 
 const metricsPath = path.join(process.cwd(), "components", "dashboard", "metric-cards.tsx");
 const metrics = fs.readFileSync(metricsPath, "utf8");

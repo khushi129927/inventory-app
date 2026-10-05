@@ -19,6 +19,9 @@ export function useRecordMovement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["movements"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey.includes("dashboard") });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey.includes("activity") });
       toast.success("Movement recorded successfully");
     },
     onError: (error: any) => toast.error(error.message),

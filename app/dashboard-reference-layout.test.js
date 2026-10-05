@@ -14,8 +14,8 @@ const lowStock = fs.readFileSync(lowStockPath, "utf8");
 
 assert(
   dashboard.includes('className="page-header-row flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"') &&
-    dashboard.includes('className="page-title text-[32px] font-bold tracking-[-0.03em] text-foreground"') &&
-    dashboard.includes('className="page-subtitle mt-2 max-w-[600px] text-sm text-muted-foreground"'),
+    dashboard.includes('className="page-header"') &&
+    dashboard.includes('<h1>Dashboard</h1>'),
   "Expected dashboard page header to match the provided StockForge layout and typography"
 );
 

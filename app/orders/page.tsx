@@ -11,6 +11,7 @@ import { apiGetOrders, apiUpdateOrder } from "@/lib/api";
 export default function OrdersPage() {
   const queryClient = useQueryClient();
   const currentUser = useAuthStore((s) => s.currentUser);
+  const [activeTab, setActiveTab] = React.useState<"pending" | "history">("pending");
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["orders"],
@@ -70,21 +71,57 @@ export default function OrdersPage() {
         <div className="py-24 text-center">Loading orders...</div>
       ) : (
         <div className="space-y-8">
-          <section className="space-y-3">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">Pending Approval</h2>
-              <p className="text-sm text-muted-foreground">New order requests waiting for approval or rejection.</p>
-            </div>
-            <OrderTable orders={pendingOrders} onApprove={handleApprove} onReject={handleReject} />
-          </section>
+          <div role="tablist" className="flex flex-wrap items-center gap-2">
+            {[
+              { key: "pending", label: `Pending Approval (${pendingOrders.length})` },
+              { key: "history", label: `Order History (${historyOrders.length})` },
+            ].map((tab) => {
+              const isActive = activeTab === tab.key;
 
-          <section className="space-y-3">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">Order History</h2>
-              <p className="text-sm text-muted-foreground">Previously approved or rejected requests remain visible here.</p>
-            </div>
-            <OrderTable orders={historyOrders} onApprove={handleApprove} onReject={handleReject} />
-          </section>
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  tabIndex={isActive ? 0 : -1}
+                  onClick={() => setActiveTab(tab.key as "pending" | "history")}
+                  onKeyDown={(event) => {
+                    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+                      event.preventDefault();
+                      setActiveTab((current) => (current === "pending" ? "history" : "pending"));
+                    }
+                  }}
+                  className={[
+                    "rounded-[4px] border px-4 py-2 text-[13px] font-semibold transition-colors",
+                    isActive
+                      ? "border-primary/40 bg-accent/10 text-primary"
+                      : "border-[var(--border-strong)] bg-transparent text-muted-foreground hover:text-foreground",
+                  ].join(" ")}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {activeTab === "pending" ? (
+            <section className="space-y-3">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Pending Approval</h2>
+                <p className="text-sm text-muted-foreground">New order requests waiting for approval or rejection.</p>
+              </div>
+              <OrderTable orders={pendingOrders} onApprove={handleApprove} onReject={handleReject} />
+            </section>
+          ) : (
+            <section className="space-y-3">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Order History</h2>
+                <p className="text-sm text-muted-foreground">Previously approved or rejected requests remain visible here.</p>
+              </div>
+              <OrderTable orders={historyOrders} onApprove={handleApprove} onReject={handleReject} />
+            </section>
+          )}
         </div>
       )}
     </div>

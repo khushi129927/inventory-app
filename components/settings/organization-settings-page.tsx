@@ -150,15 +150,6 @@ export default function OrganizationSettingsPage() {
             </header>
 
             <div className="flex flex-col gap-8 px-6 py-8 md:px-8 md:py-10">
-              <div>
-                <h1 className="mb-2 text-3xl font-bold tracking-[-0.03em] text-foreground md:text-4xl">
-                  Organization Settings
-                </h1>
-                <p className="max-w-[560px] text-[15px] leading-[1.55] text-[#8a8a8a]">
-                  Manage your team, workspace preferences, and organization profile. Changes apply immediately across all StockForge modules.
-                </p>
-              </div>
-
               <div className="grid items-start gap-8 xl:grid-cols-2">
                 <div className="flex flex-col gap-8">
                   <section className="rounded-[2px] border border-border bg-card">

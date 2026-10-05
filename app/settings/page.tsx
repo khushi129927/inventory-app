@@ -25,6 +25,10 @@ export default function SettingsPage() {
 
   return (
     <div className="page-content">
+      <div className="page-header">
+        <h1>Organization Settings</h1>
+        <p>Manage your team, workspace preferences, and organization profile. Changes apply immediately across all StockForge modules.</p>
+      </div>
       <OrganizationSettingsPage />
     </div>
   );

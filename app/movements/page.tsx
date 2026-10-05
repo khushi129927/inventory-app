@@ -22,7 +22,7 @@ import type { MovementFilterState } from "@/components/movements/movement-filter
 import MovementTable from "@/components/movements/movement-table";
 import RecordMovementDialog from "@/components/movements/record-movement-dialog";
 import Icon from "@/components/Icon";
-import { apiGetMovements } from "@/lib/api"; // Assuming we add this to api.ts
+import { apiGetMovements } from "@/lib/api";
 
 interface StatCardItem {
   label: string;
@@ -31,17 +31,27 @@ interface StatCardItem {
   deltaClassName: string;
 }
 
-function formatProcessingTime(minutes: number) {
-  if (!Number.isFinite(minutes) || minutes <= 0) {
-    return "12m";
+function formatRelativeTime(value: string | null | undefined) {
+  if (!value) {
+    return "No movements yet";
   }
 
-  if (minutes >= 60) {
-    const hours = minutes / 60;
-    return `${hours.toFixed(1)}h`;
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) {
+    return "No movements yet";
   }
 
-  return `${Math.round(minutes)}m`;
+  const diffMs = Date.now() - timestamp;
+  const diffMinutes = Math.max(0, Math.round(diffMs / 60000));
+
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays}d ago`;
 }
 
 function escapeCsvValue(value: string | number) {
@@ -57,9 +67,21 @@ export default function MovementsPage() {
   });
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
-  const { data: movements = [], isLoading } = useQuery({
-    queryKey: ["movements", filters],
-    queryFn: () => apiGetMovements(filters).then(res => res.movements),
+  const movementQueryFilters = React.useMemo(
+    () => (filters.type ? { type: filters.type } : {}),
+    [filters.type]
+  );
+
+  const {
+    data: movements = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["movements", movementQueryFilters],
+    queryFn: () => apiGetMovements(movementQueryFilters).then(res => res.movements),
+    refetchOnWindowFocus: true,
+    refetchInterval: 60000,
   });
 
   const filtered = React.useMemo(() => {
@@ -83,23 +105,8 @@ export default function MovementsPage() {
       0
     );
 
-    const pendingTransfers = movements.filter((movement) => movement.type === "transfer").length;
-
-    const sortedAscending = [...movements].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
-
-    let averageMinutes = 0;
-
-    if (sortedAscending.length > 1) {
-      const totalGap = sortedAscending.slice(1).reduce((sum, movement, index) => {
-        const previousTime = new Date(sortedAscending[index].createdAt).getTime();
-        const currentTime = new Date(movement.createdAt).getTime();
-        return sum + Math.max(0, currentTime - previousTime);
-      }, 0);
-
-      averageMinutes = totalGap / (sortedAscending.length - 1) / 60000;
-    }
+    const transfersLogged = movements.filter((movement) => movement.type === "transfer").length;
+    const lastMovement = movements[0] ?? null;
 
     return [
       {
@@ -128,22 +135,16 @@ export default function MovementsPage() {
               : "text-[var(--text-muted)]",
       },
       {
-        label: "Pending Transfers",
-        value: `${pendingTransfers}`,
-        delta:
-          pendingTransfers > 0
-            ? `${pendingTransfers} internal relocations to review`
-            : "No transfer movements awaiting review",
-        deltaClassName: pendingTransfers > 0 ? "text-primary" : "text-[var(--text-muted)]",
+        label: "Transfers Logged",
+        value: `${transfersLogged}`,
+        delta: "Logged only, stock unchanged",
+        deltaClassName: transfersLogged > 0 ? "text-primary" : "text-[var(--text-muted)]",
       },
       {
-        label: "Avg Processing Time",
-        value: formatProcessingTime(averageMinutes),
-        delta:
-          sortedAscending.length > 1
-            ? "Average interval between logged movements"
-            : "Fallback benchmark based on standard workflow",
-        deltaClassName: sortedAscending.length > 1 ? "text-primary" : "text-[var(--text-muted)]",
+        label: "Last Movement",
+        value: formatRelativeTime(lastMovement?.createdAt),
+        delta: lastMovement ? lastMovement.reason : "No movements yet",
+        deltaClassName: lastMovement ? "text-primary" : "text-[var(--text-muted)]",
       },
     ];
   }, [movements]);
@@ -229,6 +230,18 @@ export default function MovementsPage() {
         <div className="space-y-4">
           {isLoading ? (
             <div className="py-24 text-center">Loading movements...</div>
+          ) : isError ? (
+            <Empty className="border py-24">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Icon name="TriangleAlert" className="h-4 w-4" />
+                </EmptyMedia>
+                <EmptyTitle>Failed to load movements</EmptyTitle>
+                <EmptyDescription>
+                  {error instanceof Error ? error.message : "Unable to load stock movements."}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

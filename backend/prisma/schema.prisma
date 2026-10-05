@@ -53,6 +53,13 @@ enum MovementType {
   transfer
 }
 
+enum NotifyChannel {
+  sms
+  whatsapp
+  both
+  none
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String
@@ -244,6 +251,91 @@ model OrganizationProfile {
   updatedAt         DateTime @updatedAt
 }
 
+
+model SalesPerson {
+  id              String             @id @default(cuid())
+  name            String             @unique
+  phone           String?
+  notifyChannel   NotifyChannel      @default(whatsapp)
+  active          Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  clients         Client[]
+  outstandingLinks OutstandingLink[]
+  notificationLogs NotificationLog[]
+  tallyGuid       String?            @unique
+  tallyName       String?
+  syncStatus      String?
+  lastSyncedAt    DateTime?
+}
+
+model Client {
+  id                 String               @id @default(cuid())
+  name               String               @unique
+  salesPersonId      String?
+  salesPerson        SalesPerson?         @relation(fields: [salesPersonId], references: [id])
+  creditDays         Int                  @default(0)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  outstandingInvoices OutstandingInvoice[]
+  tallyGuid          String?              @unique
+  tallyName          String?
+  syncStatus         String?
+  lastSyncedAt       DateTime?
+}
+
+model OutstandingInvoice {
+  id              String    @id @default(cuid())
+  clientId        String
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  invoiceNo       String
+  invoiceDate     DateTime
+  amount          Float
+  paidAmount      Float     @default(0)
+  creditDays      Int       @default(0)
+  dueDate         DateTime
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  tallyGuid       String?   @unique
+  tallyName       String?
+  syncStatus      String?
+  lastSyncedAt    DateTime?
+
+  @@unique([clientId, invoiceNo])
+  @@index([dueDate])
+  @@index([clientId])
+}
+
+model OutstandingLink {
+  id            String      @id @default(cuid())
+  tokenHash     String      @unique
+  salesPersonId String
+  salesPerson   SalesPerson @relation(fields: [salesPersonId], references: [id], onDelete: Cascade)
+  clientIds     String[]
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdAt     DateTime    @default(now())
+  lastViewedAt  DateTime?
+  viewCount     Int         @default(0)
+}
+
+model NotificationLog {
+  id                String      @id @default(cuid())
+  salesPersonId     String
+  salesPerson       SalesPerson @relation(fields: [salesPersonId], references: [id], onDelete: Cascade)
+  channel           String
+  kind              String
+  scheduledFor      DateTime
+  status            String
+  providerMessageId String?
+  error             String?
+  messageText       String
+  linkId            String?
+  attempts          Int         @default(0)
+  createdAt         DateTime    @default(now())
+
+  @@unique([salesPersonId, channel, kind, scheduledFor])
+}
 
 model SyncJob {
   id          String   @id @default(cuid())

@@ -28,9 +28,7 @@ interface NavItem {
 
 interface SidebarContentProps {
   navItems: NavItem[];
-  userName: string;
   userRole: UserRole;
-  onLogout: () => void;
   onNavigate?: () => void;
   pendingCount?: number;
 }
@@ -40,13 +38,14 @@ const allNavItems: NavItem[] = [
   { label: "Stock", href: "/products", icon: "Package", section: "Workspace" },
   { label: "Movements", href: "/movements", icon: "ArrowLeftRight", section: "Workspace" },
   { label: "Orders", href: "/orders", icon: "ClipboardList", section: "Workspace" },
+  { label: "Outstanding", href: "/outstanding", icon: "Wallet", section: "Workspace" },
   { label: "Categories", href: "/categories", icon: "Tags", section: "Workspace" },
   { label: "Users", href: "/users", icon: "Users", section: "Workspace" },
 ];
 
 const roleNavAccess: Record<UserRole, string[]> = {
-  admin: ["/", "/products", "/movements", "/categories", "/users", "/orders"],
-  manager: ["/", "/products", "/movements", "/orders"],
+  admin: ["/", "/products", "/movements", "/categories", "/users", "/orders", "/outstanding"],
+  manager: ["/", "/products", "/movements", "/orders", "/outstanding"],
   executive: ["/", "/products"],
 };
 
@@ -71,23 +70,6 @@ function getActiveNavItem(pathname: string, navItems: NavItem[]): NavItem | unde
   }
 
   return undefined;
-}
-
-function getCurrentPageLabel(pathname: string, navItems: NavItem[]): string {
-  const matchedItem = getActiveNavItem(pathname, navItems);
-  if (matchedItem) {
-    return matchedItem.label;
-  }
-
-  if (pathname === "/offerings") {
-    return "Offerings";
-  }
-
-  if (pathname === "/settings") {
-    return "Settings";
-  }
-
-  return "Dashboard";
 }
 
 function getInitials(name: string): string {
@@ -164,9 +146,7 @@ function SidebarSection({
 
 function SidebarContent({
   navItems,
-  userName,
   userRole,
-  onLogout,
   onNavigate,
   pendingCount,
 }: SidebarContentProps) {
@@ -198,8 +178,8 @@ function SidebarContent({
   }, [catalogUrl]);
 
   return (
-    <div className="flex h-full flex-col bg-[var(--sidebar)] py-6 text-[var(--sidebar-foreground)]">
-      <div className="border-b border-[var(--sidebar-border)] px-6 pt-6 pb-4">
+    <div className="flex h-full flex-col bg-[var(--sidebar)] pb-6 text-[var(--sidebar-foreground)]">
+      <div className="border-b border-[var(--sidebar-border)] px-6 pt-4 pb-4">
         <div className="space-y-1">
           <p className="text-[18px] font-bold tracking-[-0.02em] text-[var(--sidebar-foreground)]">StockForge</p>
           <p className="font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--sidebar-foreground)]/60">
@@ -208,7 +188,7 @@ function SidebarContent({
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-6 pt-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pt-6">
         <SidebarSection title="Workspace" items={workspaceItems} activeHref={activeHref} onNavigate={onNavigate} />
       </div>
 
@@ -261,33 +241,18 @@ function SidebarContent({
           </div>
         )}
 
-        <div className="flex items-center gap-3 rounded-[8px] border border-[var(--sidebar-border)] bg-[rgba(255,255,255,0.04)] px-3 py-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2A2E3F] font-mono text-[12px] font-bold uppercase text-[#2DD4BF]">
-            {getInitials(userName).slice(0, 1)}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-semibold text-[var(--sidebar-foreground)]">{userName}</p>
-            <p className="text-[11px] text-[var(--sidebar-foreground)]/60">{userRole}</p>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onLogout}
-            className="rounded-[6px] border border-[rgba(255,255,255,0.14)] bg-transparent px-2.5 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--sidebar-foreground)]/60 hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--sidebar-foreground)]"
-          >
-            <Icon name="LogOut" className="h-3.5 w-3.5" />
-            Logout
-          </Button>
-        </div>
       </div>
     </div>
   );
 }
 
+function isPublicShellPath(pathname: string) {
+  return pathname === "/offerings" || pathname.startsWith("/o/");
+}
+
 export default function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isPublic = pathname === "/offerings";
+  const isPublic = isPublicShellPath(pathname);
 
   // Use a safe check to prevent the app from crashing if the store is temporarily undefined
   const currentUser = typeof useAuthStore !== 'undefined' ? useAuthStore((state) => state.currentUser) : null;
@@ -300,29 +265,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const notificationCount = canSeeOrders ? pendingCount : 0;
 
   if (isPublic && !currentUser) {
-    return (
-      <div className="flex min-h-screen flex-col bg-background text-foreground">
-        <header className="border-b border-border bg-background/95 backdrop-blur-sm">
-          <div className="flex h-16 items-center justify-between px-4 sm:px-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-border bg-card text-[var(--primary)]">
-                <Icon name="Boxes" className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-[18px] font-bold tracking-tight text-foreground">StockForge</p>
-                <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                  Public catalog access
-                </p>
-              </div>
-            </div>
-            <p className="hidden font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground sm:block">
-              Offerings
-            </p>
-          </div>
-        </header>
-        <main className="flex-1">{children}</main>
-      </div>
-    );
+    return <>{children}</>;
   }
 
   if (!currentUser) {
@@ -330,22 +273,19 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   }
 
   const visibleNavItems = getNavItemsForRole(currentUser.role);
-  const currentPageLabel = getCurrentPageLabel(pathname, visibleNavItems);
   const userInitials = getInitials(currentUser.name);
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <aside className="hidden w-64 shrink-0 md:block">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+      <aside className="hidden h-screen w-64 shrink-0 overflow-hidden md:block">
         <SidebarContent
           navItems={visibleNavItems}
-          userName={currentUser.name}
           userRole={currentUser.role}
-          onLogout={logout}
           pendingCount={notificationCount}
         />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex h-screen min-w-0 flex-1 flex-col">
         <header className="flex h-14 border-b border-border bg-card px-8">
           <div className="flex min-w-0 flex-1 items-center gap-3 md:hidden">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -369,26 +309,12 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 </SheetHeader>
                 <SidebarContent
                   navItems={visibleNavItems}
-                  userName={currentUser.name}
                   userRole={currentUser.role}
-                  onLogout={() => {
-                    logout();
-                    setMobileOpen(false);
-                  }}
                   onNavigate={() => setMobileOpen(false)}
                   pendingCount={notificationCount}
                 />
               </SheetContent>
             </Sheet>
-            <p className="truncate font-mono text-[13px] uppercase tracking-[0.08em] text-muted-foreground">
-              {currentPageLabel}
-            </p>
-          </div>
-
-          <div className="hidden min-w-0 flex-1 items-center md:flex md:self-center">
-            <p className="truncate font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-              {currentPageLabel}
-            </p>
           </div>
 
           <div className="ml-auto flex items-center gap-4 self-center">
@@ -426,7 +352,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto bg-background">
+        <main className="min-h-0 flex-1 overflow-y-auto bg-background">
           <div className="h-full">{children}</div>
         </main>
       </div>
